@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="color-scheme" content="light" />
+  <title>Attack Path — User Journey Workflow</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root { color-scheme: light; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: #f8fafc; font-family: 'Inter', system-ui, sans-serif; color: #1e293b; }
+
+    /* ── Page shell ─────────────────────────────────────────────────────── */
+    .page { min-height: 100vh; padding: 32px 28px 48px; }
+
+    /* ── Page header ─────────────────────────────────────────────────────── */
+    .pg-header {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      margin-bottom: 32px; padding-bottom: 20px;
+      border-bottom: 2px solid #e2e8f0;
+    }
+    .pg-logo { display: flex; align-items: center; gap: 10px; }
+    .pg-logo-dot { width: 28px; height: 28px; background: #E5002B; border-radius: 6px;
+      display: flex; align-items: center; justify-content: center; }
+    .pg-logo-dot svg { width: 16px; height: 16px; }
+    .pg-title-group h1 { font-size: 22px; font-weight: 800; color: #0f172a; }
+    .pg-title-group p { font-size: 12px; color: #64748b; margin-top: 2px; }
+    .pg-meta { text-align: right; font-size: 11px; color: #94a3b8; }
+    .pg-meta strong { color: #475569; }
+
+    /* ── ENTRY FLOW (top bar) ────────────────────────────────────────────── */
+    .entry-section { margin-bottom: 28px; }
+    .entry-label { font-size: 10px; font-weight: 700; color: #94a3b8;
+      text-transform: uppercase; letter-spacing: .08em; margin-bottom: 12px;
+      display: flex; align-items: center; gap: 6px; }
+    .entry-label::after { content:''; flex:1; height:1px; background:#e2e8f0; }
+
+    .entry-flow { display: flex; align-items: center; gap: 0; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; }
+
+    .entry-node {
+      display: flex; flex-direction: column; align-items: center; gap: 5px;
+      min-width: 110px; flex-shrink: 0;
+    }
+    .entry-icon {
+      width: 44px; height: 44px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; border: 2px solid;
+    }
+    .entry-icon.etm   { background: #1e293b; border-color: #334155; }
+    .entry-icon.nav   { background: #312e81; border-color: #4338ca; }
+    .entry-icon.click { background: #1d4ed8; border-color: #2563eb; }
+    .entry-icon.land  { background: #0e7490; border-color: #0891b2; }
+    .entry-icon.start { background: #065f46; border-color: #059669; }
+
+    .entry-node-label { font-size: 10px; font-weight: 600; color: #475569; text-align: center; line-height: 1.3; max-width: 100px; }
+    .entry-node-sub   { font-size: 9px; color: #94a3b8; text-align: center; line-height: 1.3; max-width: 100px; }
+
+    .entry-arrow { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; padding: 0 4px; }
+    .entry-arrow svg { color: #94a3b8; }
+    .entry-arrow-label { font-size: 8px; color: #94a3b8; white-space: nowrap; margin-top: 2px; }
+
+    /* ── Phase header row ───────────────────────────────────────────────── */
+    .phases-header { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 0; }
+
+    .phase-header {
+      border-radius: 10px 10px 0 0; padding: 12px 16px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .phase-header.discover  { background: #1d4ed8; }
+    .phase-header.analyze   { background: #0e7490; }
+    .phase-header.remediate { background: #065f46; }
+
+    .phase-num { font-size: 28px; font-weight: 800; opacity: .3; color: #fff; line-height: 1; }
+    .phase-title { color: #fff; }
+    .phase-title h2 { font-size: 14px; font-weight: 700; }
+    .phase-title p  { font-size: 10px; opacity: .8; margin-top: 1px; }
+
+    /* ── Phase columns ──────────────────────────────────────────────────── */
+    .phases-body { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; align-items: start; }
+    .phase-col {
+      background: #fff; border: 1px solid #e2e8f0; border-top: none;
+      border-radius: 0 0 10px 10px; padding: 16px;
+      display: flex; flex-direction: column; gap: 0;
+    }
+
+    /* ── Flow nodes ─────────────────────────────────────────────────────── */
+    .flow-node {
+      border-radius: 8px; padding: 10px 12px;
+      border: 1.5px solid; position: relative;
+      margin-bottom: 0;
+    }
+    .flow-node.action { background: #f8fafc; border-color: #e2e8f0; }
+    .flow-node.screen { background: #eff6ff; border-color: #bfdbfe; }
+    .flow-node.decision { background: #fefce8; border-color: #fde68a; border-radius: 6px; }
+    .flow-node.outcome { background: #f0fdf4; border-color: #bbf7d0; }
+    .flow-node.terminal{ background: #1e293b; border-color: #334155; }
+
+    .flow-node-icon { font-size: 14px; margin-bottom: 3px; display: block; }
+    .flow-node-title { font-size: 11px; font-weight: 700; color: #1e293b; line-height: 1.3; }
+    .flow-node.terminal .flow-node-title { color: #f1f5f9; }
+    .flow-node-desc  { font-size: 10px; color: #64748b; margin-top: 3px; line-height: 1.4; }
+    .flow-node.terminal .flow-node-desc { color: #94a3b8; }
+
+    .flow-node-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+    .tag {
+      font-size: 9px; font-weight: 600; padding: 2px 6px;
+      border-radius: 4px; border: 1px solid;
+    }
+    .tag.blue   { background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe; }
+    .tag.teal   { background:#f0fdfa; color:#0e7490; border-color:#99f6e4; }
+    .tag.green  { background:#f0fdf4; color:#166534; border-color:#bbf7d0; }
+    .tag.red    { background:#fef2f2; color:#dc2626; border-color:#fecaca; }
+    .tag.orange { background:#fff7ed; color:#c2410c; border-color:#fed7aa; }
+    .tag.purple { background:#f5f3ff; color:#7c3aed; border-color:#ddd6fe; }
+    .tag.slate  { background:#f8fafc; color:#475569; border-color:#e2e8f0; }
+
+    /* ── Connectors between nodes ───────────────────────────────────────── */
+    .connector {
+      display: flex; flex-direction: column; align-items: center;
+      padding: 4px 0; gap: 0;
+    }
+    .connector-line { width: 2px; background: #cbd5e1; flex: 1; min-height: 12px; }
+    .connector-label {
+      font-size: 9px; color: #94a3b8; background: #fff;
+      border: 1px solid #e2e8f0; padding: 1px 6px; border-radius: 10px;
+      white-space: nowrap; margin: 2px 0;
+    }
+    .connector-arrow { color: #94a3b8; line-height: 1; font-size: 12px; }
+
+    /* ── Sub-action list ────────────────────────────────────────────────── */
+    .sub-list { padding: 6px 0 0 0; }
+    .sub-item {
+      display: flex; align-items: flex-start; gap: 7px;
+      padding: 5px 0; border-top: 1px dashed #f1f5f9;
+    }
+    .sub-item:first-child { border-top: none; }
+    .sub-bullet { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; margin-top: 3px; }
+    .sub-bullet.blue   { background: #3b82f6; }
+    .sub-bullet.teal   { background: #0e7490; }
+    .sub-bullet.green  { background: #22c55e; }
+    .sub-bullet.orange { background: #f97316; }
+    .sub-bullet.red    { background: #ef4444; }
+    .sub-bullet.purple { background: #8b5cf6; }
+    .sub-bullet.slate  { background: #94a3b8; }
+    .sub-text { font-size: 10px; color: #475569; line-height: 1.4; }
+    .sub-text strong { color: #1e293b; }
+
+    /* ── Cross-column arrow ─────────────────────────────────────────────── */
+    .cross-col-arrow {
+      display: flex; align-items: center; justify-content: center;
+      padding: 8px 0; color: #94a3b8; font-size: 11px; font-weight: 600;
+      gap: 4px;
+    }
+
+    /* ── Decision diamond box ───────────────────────────────────────────── */
+    .decision-box {
+      background: #fefce8; border: 1.5px solid #fde68a;
+      border-radius: 6px; padding: 8px 12px; position: relative;
+    }
+    .decision-box::before {
+      content: '◆'; position: absolute; left: -8px; top: 50%;
+      transform: translateY(-50%); color: #ca8a04; font-size: 14px;
+      background: #fefce8;
+    }
+    .decision-title { font-size: 10px; font-weight: 700; color: #854d0e; }
+    .decision-desc  { font-size: 9.5px; color: #92400e; margin-top: 2px; line-height: 1.4; }
+    .decision-branches {
+      display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap;
+    }
+    .branch {
+      font-size: 9px; font-weight: 600; padding: 2px 8px;
+      border-radius: 10px; border: 1px solid;
+      display: flex; align-items: center; gap: 3px;
+    }
+    .branch.yes { background: #f0fdf4; color: #166534; border-color: #bbf7d0; }
+    .branch.no  { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
+    .branch.alt { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+
+    /* ── Outcome / exit box ─────────────────────────────────────────────── */
+    .outcome-box {
+      background: linear-gradient(135deg, #065f46 0%, #0e7490 100%);
+      border-radius: 8px; padding: 12px 14px; margin-top: 4px;
+      color: #fff;
+    }
+    .outcome-box h4 { font-size: 11px; font-weight: 700; margin-bottom: 4px; }
+    .outcome-box p  { font-size: 10px; opacity: .85; line-height: 1.4; }
+    .outcome-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+    .outcome-tag {
+      font-size: 9px; font-weight: 600; padding: 2px 7px;
+      border-radius: 4px; background: rgba(255,255,255,.15); color: #fff;
+      border: 1px solid rgba(255,255,255,.3);
+    }
+
+    /* ── Section divider ─────────────────────────────────────────────────── */
+    .section-divider {
+      display: flex; align-items: center; gap: 8px;
+      margin: 6px 0;
+    }
+    .section-divider span { font-size: 9px; font-weight: 700; color: #94a3b8;
+      text-transform: uppercase; letter-spacing: .07em; white-space: nowrap; }
+    .section-divider::before, .section-divider::after {
+      content: ''; flex: 1; height: 1px; background: #e2e8f0;
+    }
+
+    /* ── Cross-column transition panel ─────────────────────────────────── */
+    .transition-row {
+      display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;
+      margin: 12px 0;
+    }
+    .transition-cell {
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      padding: 6px 10px; border-radius: 20px; font-size: 10px; font-weight: 600;
+    }
+    .transition-cell.active   { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+    .transition-cell.inactive { background: #f8fafc; color: #94a3b8; border: 1px solid #e2e8f0; }
+    .transition-cell.complete { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+
+    /* ── Legend ─────────────────────────────────────────────────────────── */
+    .legend {
+      display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
+      margin-top: 24px; padding: 12px 16px;
+      background: #fff; border: 1px solid #e2e8f0; border-radius: 8px;
+    }
+    .legend-title { font-size: 10px; font-weight: 700; color: #94a3b8;
+      text-transform: uppercase; letter-spacing: .06em; }
+    .legend-item { display: flex; align-items: center; gap: 5px; font-size: 10px; color: #475569; }
+    .legend-box { width: 14px; height: 14px; border-radius: 3px; border: 1.5px solid; flex-shrink: 0; }
+
+    /* ── Screen mockup strip ─────────────────────────────────────────────── */
+    .screen-strip {
+      background: #0f172a; border-radius: 8px; padding: 8px 10px;
+      display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+    }
+    .screen-dots { display: flex; gap: 4px; }
+    .screen-dot { width: 7px; height: 7px; border-radius: 50%; }
+    .screen-dot.r { background: #ef4444; }
+    .screen-dot.y { background: #eab308; }
+    .screen-dot.g { background: #22c55e; }
+    .screen-url { font-size: 9px; color: #64748b; font-family: monospace; flex: 1; }
+    .screen-tab { font-size: 8px; color: #94a3b8; background: #1e293b;
+      padding: 2px 8px; border-radius: 3px; }
+    .screen-tab.active { color: #60a5fa; background: #1e3a5f; }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ── Page Header ─────────────────────────────────────────────────── -->
+  <div class="pg-header">
+    <div class="pg-logo">
+      <div class="pg-logo-dot">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+      </div>
+      <div class="pg-title-group">
+        <h1>Attack Path Insights — User Journey</h1>
+        <p>Qualys Enterprise TruRisk™ Platform · ETM Attack Path Module</p>
+      </div>
+    </div>
+    <div class="pg-meta">
+      <strong>Workflow diagram</strong><br/>
+      Post-login · Left Nav → Attack Path<br/>
+      Discovery → Analysis → Remediation
+    </div>
+  </div>
+
+  <!-- ── ENTRY FLOW ───────────────────────────────────────────────────── -->
+  <div class="entry-section">
+    <div class="entry-label">Entry Point — Prerequisites</div>
+    <div class="entry-flow">
+
+      <!-- Node 1 -->
+      <div class="entry-node">
+        <div class="entry-icon etm">🔐</div>
+        <div class="entry-node-label">Login to ETM</div>
+        <div class="entry-node-sub">Qualys Enterprise TruRisk™ Platform</div>
+      </div>
+
+      <!-- Arrow -->
+      <div class="entry-arrow">
+        <svg width="28" height="16" viewBox="0 0 28 16" fill="none"><path d="M2 8h20M17 3l5 5-5 5" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="entry-arrow-label">SSO / Credentials</span>
+      </div>
+
+      <!-- Node 2 -->
+      <div class="entry-node">
+        <div class="entry-icon nav">☰</div>
+        <div class="entry-node-label">ETM Left Navigation</div>
+        <div class="entry-node-sub">Enterprise TruRisk Management sidebar</div>
+      </div>
+
+      <!-- Arrow -->
+      <div class="entry-arrow">
+        <svg width="28" height="16" viewBox="0 0 28 16" fill="none"><path d="M2 8h20M17 3l5 5-5 5" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="entry-arrow-label">Click nav item</span>
+      </div>
+
+      <!-- Node 3 -->
+      <div class="entry-node">
+        <div class="entry-icon click">⎇</div>
+        <div class="entry-node-label">Click "Attack Path"</div>
+        <div class="entry-node-sub">Active nav state — indigo highlight</div>
+      </div>
+
+      <!-- Arrow -->
+      <div class="entry-arrow">
+        <svg width="28" height="16" viewBox="0 0 28 16" fill="none"><path d="M2 8h20M17 3l5 5-5 5" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="entry-arrow-label">Navigate</span>
+      </div>
+
+      <!-- Node 4 -->
+      <div class="entry-node">
+        <div class="entry-icon land">📊</div>
+        <div class="entry-node-label">Attack Path Insights</div>
+        <div class="entry-node-sub">Lands on 01 Discover tab by default</div>
+      </div>
+
+      <!-- Arrow -->
+      <div class="entry-arrow">
+        <svg width="28" height="16" viewBox="0 0 28 16" fill="none"><path d="M2 8h20M17 3l5 5-5 5" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="entry-arrow-label">Auto-load</span>
+      </div>
+
+      <!-- Node 5 -->
+      <div class="entry-node">
+        <div class="entry-icon start">✦</div>
+        <div class="entry-node-label">Journey Begins</div>
+        <div class="entry-node-sub">Qualys scan data pre-loaded (Last scan: 4 min ago)</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── PHASE HEADERS ─────────────────────────────────────────────────── -->
+  <div class="phases-header">
+    <div class="phase-header discover">
+      <div class="phase-num">01</div>
+      <div class="phase-title">
+        <h2>Discover</h2>
+        <p>Browse &amp; filter all attack paths</p>
+      </div>
+    </div>
+    <div class="phase-header analyze">
+      <div class="phase-num">02</div>
+      <div class="phase-title">
+        <h2>Analyze</h2>
+        <p>Drill into path detail &amp; escalation</p>
+      </div>
+    </div>
+    <div class="phase-header remediate">
+      <div class="phase-num">03</div>
+      <div class="phase-title">
+        <h2>Remediate</h2>
+        <p>Prioritized fixes &amp; risk actions</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── PHASE COLUMNS ─────────────────────────────────────────────────── -->
+  <div class="phases-body">
+
+    <!-- ════════════════════════════════════════════════════ -->
+    <!-- COLUMN 1 — DISCOVER                                  -->
+    <!-- ════════════════════════════════════════════════════ -->
+    <div class="phase-col">
+
+      <!-- Screen state -->
+      <div class="screen-strip">
+        <div class="screen-dots"><span class="screen-dot r"></span><span class="screen-dot y"></span><span class="screen-dot g"></span></div>
+        <span class="screen-url">localhost:3000/insights.html</span>
+        <span class="screen-tab active">01 Discover</span>
+        <span class="screen-tab">02 Analyze</span>
+        <span class="screen-tab">03 Remediate</span>
+      </div>
+
+      <!-- Step 1 -->
+      <div class="flow-node screen">
+        <span class="flow-node-icon">📈</span>
+        <div class="flow-node-title">View Summary Dashboard</div>
+        <div class="flow-node-desc">5 KPI cards auto-populate with live scan data</div>
+        <div class="flow-node-tags">
+          <span class="tag blue">14 Total Paths</span>
+          <span class="tag red">5 Critical</span>
+          <span class="tag orange">Avg Score 73</span>
+          <span class="tag purple">2 Crown Jewels</span>
+          <span class="tag teal">4 Entry Points</span>
+        </div>
+      </div>
+
+      <div class="connector">
+        <div class="connector-line" style="min-height:8px"></div>
+        <span class="connector-arrow">▼</span>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="flow-node action">
+        <span class="flow-node-icon">🔽</span>
+        <div class="flow-node-title">Apply Quick Filters</div>
+        <div class="flow-node-desc">Narrow paths by severity, entry point type, time range</div>
+        <div class="sub-list">
+          <div class="sub-item">
+            <span class="sub-bullet red"></span>
+            <span class="sub-text"><strong>Severity filter</strong> — All / Critical (5) / High (7) / Medium (2)</span>
+          </div>
+          <div class="sub-item">
+            <span class="sub-bullet blue"></span>
+            <span class="sub-text"><strong>Entry Point</strong> — Internet, S3, VPN, Lambda</span>
+          </div>
+          <div class="sub-item">
+            <span class="sub-bullet slate"></span>
+            <span class="sub-text"><strong>Time Range</strong> — Last 7 / 30 / 90 Days</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="connector">
+        <div class="connector-line" style="min-height:8px"></div>
+        <span class="connector-arrow">▼</span>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="flow-node action">
+        <span class="flow-node-icon">🔍</span>
+        <div class="flow-node-title">Search Attack Paths</div>
+        <div class="flow-node-desc">Free-text search by title or crown jewel target — table filters in real-time</div>
+      </div>
+
+      <div class="connector">
+        <div class="connector-line" style="min-height:8px"></div>
+        <span class="connector-arrow">▼</span>
+      </div>
+
+      <!-- Step 4 -->
+      <div class="flow-node screen">
+        <span class="flow-node-icon">📋</span>
+        <div class="flow-node-title">Browse Attack Paths Table</div>
+        <div class="flow-node-desc">Columnar view of all matching paths with full metadata</div>
+        <div class="sub-list">
+          <div class="sub-item">
+            <span class="sub-bullet slate"></span>
+            <span class="sub-text"><strong>CID</strong> — Unique path identifier (5014, 5024…)</span>
+          </div>
+          <div class="sub-item">
+            <span class="sub-bullet blue"></span>
+            <span class="sub-text"><strong>Title + Chain</strong> — Attack path narrative &amp; hop sequence</span>
+          </div>
+          <div class="sub-item">
+            <span class="sub-bullet purple"></span>
+            <span class="sub-text"><strong>Crown Jewel</strong> — Target asset being protected</span>
+          </div>
+          <div class="sub-item">
+            <span class="sub-bullet red"></span>
+            <span class="sub-text"><strong>Risk Score</strong> — Compound contextual score (max 97)</span>
+          </div>
+          <div class="sub-item">
+            <span class="sub-bullet orange"></span>
+            <span class="sub-text"><strong>Hops / Gaps</strong> — Path depth &amp; chained exposures</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="connector">
+        <div class="connector-line" style="min-height:8px"></div>
+        <span class="connector-arrow">▼</span>
+      </div>
+
+      <!-- Decision -->
+      <div class="decision-box">
+        <div class="decision-title">Select a path to investigate?</div>
+        <div class="decision-desc">User identifies a high-priority attack path to drill into</div>
+        <div class="decision-branches">
+          <span class="branch yes">✓ Yes — Click "Analyze" →</span>
+          <span class="branch alt">Browse more ↑</span>
+        </div>
+      </div>
+
+      <div class="connector">
+        <div class="connector-line" style="min-height:8px"></div>
+        <div class="connector-label">Click "Analyze" button on row</div>
+        <div class="connector-line" style="min-height:8px"></div>
+        <span class="connector-arrow">▼</span>
+      </div>
+
+      <!-- Transition -->
+      <div class="flow-node outcome">
+        <span class="flow-node-icon">→</span>
+        <div class="flow-node-title">Tab switches to 02 Analyze</div>
+        <div class="flow-node-desc">CID badge appears in tab header. Selected path context carries forward.</div>
+        <div class="flow-node-tags">
+          <span class="tag green">CID 5014 loaded</span>
+          <span class="tag teal">Tab auto-switches</span>
+        </div>
+      </div>
+
+    </div><!-- /COLUMN 1 -->
+
+
+    <!-- ════════════════════════════════════════════════════ -->
+    <!-- COLUMN 2 — ANALYZE                                   -->
+    <!-- ════════════════════════════════════════════════════ -->
+    <div class="phase-col">
+
+      <!-- Screen state -->
+      <div class="screen-strip">
+        <div class="screen-dots"><span class="screen-dot r"></span><span class="screen-dot y"></span><span class="screen-dot g"></span></div>
+        <span class="screen-url">localhost:3000/insights.html</span>
+        <span class="screen-tab">01 Discover</span>
+        <span class="screen-tab active">02 Analyze · CID 5014</span>
+        <span class="screen-tab">03 Remediate</span>
+      </div>
+
+      <!-- Step 1 -->
+      <div class="flow-node screen">
+        <span class="flow-node-icon">🗂️</span>
+        <div class="flow-node-title">Path Context Header</div>
+        <div class="flow-node-desc">Shows selected path identity, severity, status, and risk score at a glance</div>
+        <div class="flow-node-tags">
+          <span class="tag red">CRITICAL</span>
+          <span class="tag slate">Risk 97</span>
+          <span class="tag orange">Open</span>
+          <span class="tag blue">← Back to all paths</span>
+        </div>
+      </div>
+
+      <div class="connector">
+        <div class="connector-line" style="min-height:8px"></div>
+        <span class="connector-arrow">▼</span>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="flow-node screen">
+        <span class="flow-node-icon">🗺️</span>
+        <div class="flow-node-title">Multi-Step Attack Path Tracing</div>
+        <div class="flow-node-desc">Visual node-by-node flow from entry point to Crown Jewel</div>
+        <div class="sub-list">
+          <div class="sub-item">
+            <span class="sub-bullet blue"></span>
+            <span class="sub-text"><strong>Entry node</strong> → intermediate nodes → Crown Jewel 👑</span>
+          </div>
+          <div class="sub-item">
+            <span class="sub-bullet orange"></span>
+            <span class="sub-text"><strong>Edge labels</strong> — attack technique on each hop (JWT Bypass, JDBC Direct…)</span>
+          </div>
+          <div class="sub-item">
+            <span class="sub-bullet red"></span>
+            <span class="sub-text"><strong>Node severity color</strong> — Critical/High/Medium border coding</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="connector">
+        <div class="connector-line" style="min-height:8px"></div>
+        <span class="connector-arrow">▼</span>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="flow-node action">
+        <span class="flow-node-icon">🔗</span>
+        <div class="flow-node-title">Security Gap Chaining</div>
+        <div class="flow-node-desc">Shows how disparate exposures combine into one contiguous chain</div>
+        <div class="sub-list">
+          <div class="sub-item">
+            <span class="sub-bullet red"></span>
+            <span class="sub-text">Weak Auth + Network Misconfig + CVE → chained path</span>
+          </div>
+          <div class="sub-item">
+            <span class="sub-bullet orange"></span>
+            <span class="sub-text">Cloud Misconfig + SSH Key leak → credential exposure</span>
+          </div>
+          <div class="sub-item">
+            <span class="sub-bullet purple"></span>
+            <span class="sub-text">API Exposure + Identity Weakness → privilege escalation</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="connector">
+        <div class="connector-line" style="min-height:8px"></div>
+        <span class="connector-arrow">▼</span>
+      </div>
+
+      <!-- Step 4 -->
+      <div class="flow-node action">
+        <span class="flow-node-icon">📶</span>
+        <div class="flow-node-title">Privilege Escalation Mapping</div>
+        <div class="flow-node-desc">Step-by-step escalation chain — click each step to expand MITRE ATT&amp;CK detail</div>
+        <div class="sub-list">
+          <div class="sub-item">
+            <span class="sub-bullet green"></span>
+            <span class="sub-text"><strong>1 Standard User</strong> → T1078.002</span>
+          </div>
+          <div class="sub-item">
+            <span class="sub-bullet orange"></span>
+            <span class="sub-text"><strong>2 Local Admin</strong> → T1548.002 (UAC Bypass)</span>
+          </div>
+          <div class="sub-item">
+            <span class="sub-bullet red"></span>
+            <span class="sub-text"><strong>3 NT SYSTEM</strong> → T1068 (Kernel Exploit)</span>
+          </div>
+          <div class="sub-item">
+            <span class="sub-bullet red"></span>
+            <span class="sub-text"><strong>4 DCSync → Domain Admin</strong> → T1003.006</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="connector">
+        <div class="connector-line" style="min-height:8px"></div>
+        <span class="connector-arrow">▼</span>
+      </div>
+
+      <!-- Step 5 -->
+      <div class="flow-node action">
+        <span class="flow-node-icon">🖥️</span>
+        <div class="flow-node-title">Asset Metadata Enrichment</div>
+        <div class="flow-node-desc">Qualys-enriched context for every node on the path</div>
+        <div class="flow-node-tags">
+          <span class="tag slate">OS Version</span>
+          <span class="tag blue">Open Ports</span>
+          <span class="tag orange">Exploitability</span>
+          <span class="tag purple">Criticality</span>
+          <span class="tag teal">Services</span>
+        </div>
+      </div>
+
+      <div class="connector">
+        <div class="connector-line" style="min-height:8px"></div>
+        <span class="connector-arrow">▼</span>
+      </div>
+
+      <!-- Step 6 -->
+      <div class="flow-node action">
+        <span class="flow-node-icon">👥</span>
+        <div class="flow-node-title">Identity &amp; Lateral Movement</div>
+        <div class="flow-node-desc">AD identities on the path — group memberships, GPOs, escalation risk</div>
+        <div class="flow-node-tags">
+          <span class="tag red">svc_backup — CRITICAL</span>
+          <span class="tag orange">admin.jones — CRITICAL</span>
+          <span class="tag blue">WriteDACL / Kerberoastable</span>
+        </div>
+      </div>
+
+      <div class="connector">
+        <div class="connector-line" style="min-height:8px"></div>
+        <span class="connector-arrow">▼</span>
+      </div>
+
+      <!-- Decision -->
+      <div class="decision-box">
+        <div class="decision-title">Satisfied with analysis?</div>
+        <div class="decision-desc">User has full understanding of the attack chain and its exploitability</div>
+        <div class="decision-branches">
+          <span class="branch yes">✓ Yes — Remediate →</span>
+          <span class="branch no">↑ Review more</span>
+          <span class="branch alt">← Back to all paths</span>
+        </div>
+      </div>
+
+      <div class="connector">
+        <div class="connector-line" style="min-height:8px"></div>
+        <div class="connector-label">Click "03 Remediate" tab</div>
+        <div class="connector-line" style="min-height:8px"></div>
+        <span class="connector-arrow">▼</span>
+      </div>
+
+      <!-- Transition -->
+      <div class="flow-node outcome">
+        <span class="flow-node-icon">→</span>
+        <div class="flow-node-title">Tab switches to 03 Remediate</div>
+        <div class="flow-node-desc">Selected path context (CID 5014) carries into remediation — actions are pre-scoped to the analyzed path.</div>
+        <div class="flow-node-tags">
+          <span class="tag green">Path context retained</span>
+          <span class="tag teal">4 actions ready</span>
+        </div>
+      </div>
+
+    </div><!-- /COLUMN 2 -->
+
+
+    <!-- ════════════════════════════════════════════════════ -->
+    <!-- COLUMN 3 — REMEDIATE                                 -->
+    <!-- ════════════════════════════════════════════════════ -->
+    <div class="phase-col">
+
+      <!-- Screen state -->
+      <div class="screen-strip">
+        <div class="screen-dots"><span class="screen-dot r"></span><span class="screen-dot y"></span><span class="screen-dot g"></span></div>
+        <span class="screen-url">localhost:3000/insights.html</span>
+        <span class="screen-tab">01 Discover</span>
+        <span class="screen-tab">02 Analyze · CID 5014</span>
+        <span class="screen-tab active">03 Remediate</span>
+      </div>
+
+      <!-- Step 1 -->
+      <div class="flow-node screen">
+        <span class="flow-node-icon">📊</span>
+        <div class="flow-node-title">Risk Summary Dashboard</div>
+        <div class="flow-node-desc">6 KPIs show the remediation landscape at a glance</div>
+        <div class="flow-node-tags">
+          <span class="tag red">3 Toxic Combos</span>
+          <span class="tag orange">3 Score Elevated</span>
+          <span class="tag green">2 Noise Suppressed</span>
+          <span class="tag slate">18 Risk Factors</span>
+          <span class="tag red">Max Score 97</span>
+          <span class="tag blue">Actions Ready</span>
+        </div>
+      </div>
+
+      <div class="connector">
+        <div class="connector-line" style="min-height:8px"></div>
+        <span class="connector-arrow">▼</span>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="flow-node screen">
+        <span class="flow-node-icon">🔧</span>
+        <div class="flow-node-title">Prioritized Remediation Actions</div>
+        <div class="flow-node-desc">Ranked fixes for the selected path — Critical → Low — with effort &amp; ETA</div>
+        <div class="sub-list">
+          <div class="sub-item">
+            <span class="sub-bullet red"></span>
+            <span class="sub-text"><strong>CRITICAL</strong> — Patch CVE-2024-3094 · ETA: 1 day · Effort: Low</span>
+          </div>
+          <div class="sub-item">
+            <span class="sub-bullet red"></span>
+            <span class="sub-text"><strong>CRITICAL</strong> — Enable Redis AUTH on port 6379 · ETA: 4 hrs</span>
+          </div>
+          <div class="sub-item">
+            <span class="sub-bullet orange"></span>
+            <span class="sub-text"><strong>HIGH</strong> — Add network segmentation cache↔DB · ETA: 3 days</span>
+          </div>
+          <div class="sub-item">
+            <span class="sub-bullet teal"></span>
+            <span class="sub-text"><strong>MEDIUM</strong> — Remove AdministratorAccess IAM role · ETA: 2 hrs</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="connector">
+        <div class="connector-line" style="min-height:8px"></div>
+        <span class="connector-arrow">▼</span>
+      </div>
+
+      <!-- Step 3 — Action choice -->
+      <div class="flow-node action">
+        <span class="flow-node-icon">⚡</span>
+        <div class="flow-node-title">Take Action on Each Finding</div>
+        <div class="flow-node-desc">User selects an outcome for every remediation item</div>
+        <div class="sub-list">
+          <div class="sub-item">
+            <span class="sub-bullet green"></span>
+            <span class="sub-text"><strong>✅ Mark as Fixed</strong> — Issue resolved, path risk reduced</span>
+          </div>
+          <div class="sub-item">
+            <span class="sub-bullet blue"></span>
+            <span class="sub-text"><strong>🎫 Create Ticket</strong> — Sends to ticketing system (Jira/ServiceNow)</span>
+          </div>
+          <div class="sub-item">
+            <span class="sub-bullet slate"></span>
+            <span class="sub-text"><strong>👁 Suppress</strong> — Accepted risk, silenced from scoring</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="connector">
+        <div class="connector-line" style="min-height:8px"></div>
+        <span class="connector-arrow">▼</span>
+      </div>
+
+      <!-- Step 4 -->
+      <div class="flow-node action">
+        <span class="flow-node-icon">⚠️</span>
+        <div class="flow-node-title">Review Toxic Combinations</div>
+        <div class="flow-node-desc">3 auto-detected nodes where ≥ 3 critical risk factors intersect on the path to a Crown Jewel</div>
+        <div class="sub-list">
+          <div class="sub-item">
+            <span class="sub-bullet red"></span>
+            <span class="sub-text">Critical CVE + Over-Privileged IAM + Internet-Facing</span>
+          </div>
+          <div class="sub-item">
+            <span class="sub-bullet red"></span>
+            <span class="sub-text">Kerberoastable SPN + WriteDACL + Tier-0 Proximity</span>
+          </div>
+          <div class="sub-item">
+            <span class="sub-bullet red"></span>
+            <span class="sub-text">Public S3 + Cached Creds + No Auth Redis</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="connector">
+        <div class="connector-line" style="min-height:8px"></div>
+        <span class="connector-arrow">▼</span>
+      </div>
+
+      <!-- Step 5 -->
+      <div class="flow-node action">
+        <span class="flow-node-icon">📉</span>
+        <div class="flow-node-title">Contextual Risk Scoring Review</div>
+        <div class="flow-node-desc">Dynamic score adjustments — topological position elevates or suppresses each asset's risk weight</div>
+        <div class="sub-list">
+          <div class="sub-item">
+            <span class="sub-bullet red"></span>
+            <span class="sub-text">API Gateway: 73 → <strong>97</strong> (+24% toxic combo)</span>
+          </div>
+          <div class="sub-item">
+            <span class="sub-bullet orange"></span>
+            <span class="sub-text">Redis Cache: 65 → <strong>94</strong> (+29% choke point)</span>
+          </div>
+          <div class="sub-item">
+            <span class="sub-bullet green"></span>
+            <span class="sub-text">Dev Test Server: 62 → <strong>27</strong> (-57% isolated)</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="connector">
+        <div class="connector-line" style="min-height:8px"></div>
+        <span class="connector-arrow">▼</span>
+      </div>
+
+      <!-- Final outcome -->
+      <div class="outcome-box">
+        <h4>🎯 Path Risk Addressed</h4>
+        <p>Attack chain broken — risk score recalculated. Suppressed paths removed from active threat surface. Tickets tracked in external system.</p>
+        <div class="outcome-tags">
+          <span class="outcome-tag">Risk Reduced</span>
+          <span class="outcome-tag">Tickets Created</span>
+          <span class="outcome-tag">Path Suppressed / Fixed</span>
+          <span class="outcome-tag">Score Recalculated</span>
+        </div>
+      </div>
+
+    </div><!-- /COLUMN 3 -->
+  </div><!-- /phases-body -->
+
+
+  <!-- ── LEGEND ─────────────────────────────────────────────────────── -->
+  <div class="legend">
+    <span class="legend-title">Legend</span>
+    <div class="legend-item">
+      <div class="legend-box" style="background:#eff6ff;border-color:#bfdbfe;"></div>
+      Screen / View
+    </div>
+    <div class="legend-item">
+      <div class="legend-box" style="background:#f8fafc;border-color:#e2e8f0;"></div>
+      User Action
+    </div>
+    <div class="legend-item">
+      <div class="legend-box" style="background:#fefce8;border-color:#fde68a;"></div>
+      Decision Point
+    </div>
+    <div class="legend-item">
+      <div class="legend-box" style="background:#f0fdf4;border-color:#bbf7d0;"></div>
+      Transition / Outcome
+    </div>
+    <div class="legend-item">
+      <div class="legend-box" style="background:linear-gradient(135deg,#065f46,#0e7490);border-color:#059669;"></div>
+      Final Outcome
+    </div>
+    <div style="margin-left:auto;font-size:10px;color:#94a3b8;">
+      Path context (selected CID) persists across all 3 tabs throughout the session
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

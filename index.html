@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Attack Path — Qualys</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: 'Inter', system-ui, sans-serif; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }
+        }
+      }
+    }
+  </script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState } = React;
+
+// ── SVG Icons (inline, no lucide dep) ─────────────────────────────────────
+const Icon = ({ d, size = 16, cls = "" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+    stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+    className={cls}>
+    {Array.isArray(d) ? d.map((p, i) => <path key={i} d={p} />) : <path d={d} />}
+  </svg>
+);
+
+const SearchIcon = () => <Icon d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />;
+const BellIcon = () => <Icon d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0" />;
+const SettingsIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="3"/>
+    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+  </svg>
+);
+const HomeIcon = () => <Icon d={["M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z","M9 22V12h6v10"]} />;
+const DashboardIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+    <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+  </svg>
+);
+const PackageIcon = () => <Icon d={["M16.5 9.4l-9-5.19M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z","M3.27 6.96L12 12.01l8.73-5.05","M12 22.08V12"]} size={14} />;
+const ShieldIcon = () => <Icon d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" size={14} />;
+const GitBranchIcon = () => <Icon d={["M6 3v12","M18 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6z","M6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6z","M15 6a9 9 0 0 1-9 9"]} size={14} />;
+const PlusIcon = () => <Icon d={["M12 5v14","M5 12h14"]} size={14} />;
+const BotIcon = () => <Icon d={["M12 8V4H8","M16 8h.01","M8 8h.01","M19 8H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2z","M6 19v2","M18 19v2"]} size={14} />;
+const ArrowRightIcon = ({ size = 14 }) => <Icon d={["M5 12h14","M12 5l7 7-7 7"]} size={size} />;
+const AlertTriIcon = () => <Icon d={["M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z","M12 9v4","M12 17h.01"]} size={14} />;
+const DatabaseIcon = ({ size = 20 }) => <Icon d={["M12 2C6.48 2 2 4.69 2 8s4.48 6 10 6 10-2.69 10-6-4.48-6-10-6z","M2 8v8c0 3.31 4.48 6 10 6s10-2.69 10-6V8","M2 12c0 3.31 4.48 6 10 6s10-2.69 10-6"]} size={size} />;
+const UserIcon = ({ size = 16 }) => <Icon d={["M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2","M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"]} size={size} />;
+
+// ── Severity Badge ─────────────────────────────────────────────────────────
+function SeverityBadge({ level }) {
+  const colors = {
+    CRITICAL: 'bg-red-100 text-red-700 border border-red-200',
+    HIGH:     'bg-orange-100 text-orange-700 border border-orange-200',
+    MEDIUM:   'bg-yellow-100 text-yellow-700 border border-yellow-200',
+    LOW:      'bg-green-100 text-green-700 border border-green-200',
+  };
+  return (
+    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded whitespace-nowrap ${colors[level] || colors.LOW}`}>
+      {level}
+    </span>
+  );
+}
+
+// ── Discovery Tab ──────────────────────────────────────────────────────────
+function DiscoveryTab() {
+  const stats = [
+    { label: 'App Traces', value: '7' },
+    { label: 'Avg Path Depth', value: '3.8' },
+    { label: 'Entry Points', value: '4' },
+    { label: 'Crown Jewels Reached', value: '2' },
+    { label: 'Enriched Assets', value: '12' },
+  ];
+
+  const flowNodes = [
+    { label: 'Web App\n(React)', severity: null, isEntry: true },
+    { label: 'API Gateway', severity: 'MEDIUM', edge: 'HTTPS' },
+    { label: 'GraphQL\n/query', severity: 'HIGH', edge: 'GraphQL' },
+    { label: 'Auth\nService', severity: 'MEDIUM', edge: 'JWT Bypass' },
+    { label: 'Redis\nCache', severity: 'HIGH', edge: 'Query\nInjection' },
+    { label: 'PostgreSQL\n(PII)', severity: 'CRITICAL', edge: 'JDBC Direct', isCrown: true },
+    { label: 'LDAP / AD', severity: 'CRITICAL', edge: 'Cached\nCreds', isCrown: true },
+  ];
+
+  const assets = [
+    { name: 'api-gateway-prod', severity: 'CRITICAL', exp: 'High', os: 'Amazon Linux 2', crit: 'Mission Critical', ports: '443, 8080, 9090', svcs: 'Kong API Gateway, Prometheus Exporter' },
+    { name: 'redis-cache-01', severity: 'CRITICAL', exp: 'Critical', os: 'Ubuntu 22.04 LTS', crit: 'High', ports: '6379', svcs: 'Redis 7.2 (no auth)' },
+    { name: 'auth-service-01', severity: 'HIGH', exp: 'Medium', os: 'Alpine Linux 3.18', crit: 'Mission Critical', ports: '8443, 5432', svcs: 'Spring Boot 3.1, PostgreSQL Client' },
+    { name: 'dev-test-server', severity: 'LOW', exp: 'None (isolated)', os: 'Windows Server 2019', crit: 'Low', ports: '3389, 445', svcs: 'RDP, SMB' },
+  ];
+
+  const identities = [
+    { user: 'jsmith', severity: 'HIGH', groups: ['IT-Helpdesk', 'Remote-Users', 'VPN-Full-Access'], gpos: ['GPO: WS-Config', 'GPO: Remote-Access'], esc: 'High — group nesting grants GenericAll on service accounts' },
+    { user: 'svc_backup', severity: 'CRITICAL', groups: ['Backup-Operators', 'Server-Admins (nested)'], gpos: ['GPO: ServerConfig', 'GPO: Backup-Policy'], esc: 'Critical — Kerberoastable SPN + WriteDACL on AdminSDHolder' },
+    { user: 'admin.jones', severity: 'CRITICAL', groups: ['Domain Admins', 'Schema Admins', 'Enterprise Admins'], gpos: ['GPO: DC-Hardening', 'GPO: Admin-Audit'], esc: 'Critical — triple admin group membership, Tier-0 asset' },
+    { user: 'dev.contractor', severity: 'MEDIUM', groups: ['Developers', 'AWS-ReadOnly', 'Jenkins-Deploy'], gpos: ['GPO: Dev-Workstation'], esc: 'Medium — Jenkins deploy group enables CI/CD pipeline abuse' },
+  ];
+
+  const nodeBorder = (sev, isCrown) => {
+    if (isCrown) return 'border-red-400 bg-red-50';
+    if (sev === 'CRITICAL') return 'border-red-300 bg-red-50';
+    if (sev === 'HIGH') return 'border-orange-300 bg-orange-50';
+    if (sev === 'MEDIUM') return 'border-yellow-300 bg-yellow-50';
+    return 'border-blue-300 bg-blue-50';
+  };
+
+  const expColor = (e) => {
+    if (e === 'Critical' || e === 'High') return 'bg-red-50 text-red-600 border-red-200';
+    if (e === 'Medium') return 'bg-yellow-50 text-yellow-600 border-yellow-200';
+    return 'bg-slate-50 text-slate-500 border-slate-200';
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Stats */}
+      <div className="grid grid-cols-5 gap-3">
+        {stats.map(s => (
+          <div key={s.label} className="bg-white rounded-lg border border-slate-200 p-3 text-center">
+            <div className="text-xl font-bold text-slate-800">{s.value}</div>
+            <div className="text-[11px] text-slate-500 mt-0.5">{s.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Flow Diagram */}
+      <div className="bg-white rounded-lg border border-slate-200 p-4">
+        <div className="flex items-center justify-between mb-1">
+          <h3 className="font-semibold text-slate-800 text-sm">Multi-Step Application Tracing — Web/API to Backend</h3>
+          <span className="text-xs text-green-600 font-medium bg-green-50 border border-green-200 px-2 py-0.5 rounded">100%</span>
+        </div>
+        <p className="text-[11px] text-slate-500 mb-3">End-to-end trace from application entry points through to Crown Jewels</p>
+
+        <div className="flex flex-wrap gap-1.5 mb-4">
+          {['HTTPS','GraphQL','JWT Bypass','Query Injection','JDBC Direct','Session Hijack','LDAP Bind','Cached Creds'].map(e => (
+            <span key={e} className="text-[10px] bg-slate-100 text-slate-600 border border-slate-200 px-2 py-0.5 rounded-full">{e}</span>
+          ))}
+        </div>
+
+        <div className="flex items-center overflow-x-auto pb-2">
+          {flowNodes.map((node, i) => (
+            <div key={i} className="flex items-center shrink-0">
+              {i > 0 && (
+                <div className="flex flex-col items-center mx-1.5 shrink-0">
+                  <span className="text-[9px] text-indigo-500 font-medium mb-0.5 whitespace-pre-line text-center leading-tight">{node.edge}</span>
+                  <ArrowRightIcon />
+                </div>
+              )}
+              <div className="flex flex-col items-center min-w-[72px]">
+                <div className={`w-12 h-12 rounded-lg flex items-center justify-center border-2 mb-1 ${nodeBorder(node.severity, node.isCrown)}`}>
+                  {node.isCrown ? <DatabaseIcon size={20} /> : <span className="text-lg">🖥️</span>}
+                </div>
+                <span className="text-[10px] text-slate-700 font-medium text-center leading-tight whitespace-pre-line">{node.label}</span>
+                {node.severity && <SeverityBadge level={node.severity} />}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Asset Metadata */}
+      <div className="bg-white rounded-lg border border-slate-200 p-4">
+        <h3 className="font-semibold text-slate-800 text-sm mb-1">Asset Metadata Enrichment</h3>
+        <p className="text-[11px] text-slate-500 mb-3">Enriched asset context for exploitability assessment</p>
+        <div className="grid grid-cols-2 gap-3">
+          {assets.map(a => (
+            <div key={a.name} className="border border-slate-200 rounded-lg p-3">
+              <div className="flex items-start justify-between mb-2 gap-2">
+                <span className="text-xs font-semibold text-slate-800 font-mono">{a.name}</span>
+                <div className="flex gap-1 flex-wrap justify-end">
+                  <SeverityBadge level={a.severity} />
+                  <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded border ${expColor(a.exp)}`}>Exploitability: {a.exp}</span>
+                </div>
+              </div>
+              <div className="text-[10px] text-slate-500 mb-2">{a.os}</div>
+              <div className="grid grid-cols-3 gap-2 text-[10px]">
+                <div><div className="text-slate-400 font-medium">Criticality</div><div className="text-slate-700">{a.crit}</div></div>
+                <div><div className="text-slate-400 font-medium">Open Ports</div><div className="text-slate-700 font-mono">{a.ports}</div></div>
+                <div><div className="text-slate-400 font-medium">Services</div><div className="text-slate-700">{a.svcs}</div></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Identity Mapping */}
+      <div className="bg-white rounded-lg border border-slate-200 p-4">
+        <h3 className="font-semibold text-slate-800 text-sm mb-1">Basic Identity Mapping</h3>
+        <p className="text-[11px] text-slate-500 mb-3">AD identity mapping — User, Group Membership, GPOs</p>
+        <div className="grid grid-cols-2 gap-3">
+          {identities.map(id => (
+            <div key={id.user} className="border border-slate-200 rounded-lg p-3">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-semibold text-slate-800 font-mono">{id.user}</span>
+                <SeverityBadge level={id.severity} />
+              </div>
+              <div className="space-y-2 text-[10px]">
+                <div>
+                  <div className="text-slate-400 font-medium mb-1">Group Membership</div>
+                  <div className="flex flex-wrap gap-1">
+                    {id.groups.map(g => <span key={g} className="bg-blue-50 text-blue-700 border border-blue-200 px-1.5 py-0.5 rounded">{g}</span>)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-slate-400 font-medium mb-1">GPOs Applied</div>
+                  <div className="flex flex-wrap gap-1">
+                    {id.gpos.map(g => <span key={g} className="bg-slate-100 text-slate-600 border border-slate-200 px-1.5 py-0.5 rounded">{g}</span>)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-slate-400 font-medium mb-0.5">Escalation Risk</div>
+                  <div className={`${id.severity === 'CRITICAL' ? 'text-red-600' : id.severity === 'HIGH' ? 'text-orange-600' : 'text-yellow-600'}`}>{id.esc}</div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Analysis Tab ───────────────────────────────────────────────────────────
+function AnalysisTab() {
+  const summaryStats = [
+    { label: 'Chained Gaps', value: '11' },
+    { label: 'Escalation Paths', value: '6' },
+    { label: 'Kerberoastable SPNs', value: '3' },
+    { label: 'Tier-0 Exposure', value: '2' },
+  ];
+
+  const attackPaths = [
+    { target: 'Customer PII Database', severity: 'CRITICAL', score: 97, path: 'Internet → GraphQL API → Redis Cache → PostgreSQL (PII)', hops: '4 hops', gaps: '3 gaps chained', mitre: 'T1190 → T1021 → T1565' },
+    { target: 'Authentication Service', severity: 'CRITICAL', score: 94, path: 'S3 Config → SSH Key → Auth Service → PostgreSQL (PII)', hops: '4 hops', gaps: '2 gaps chained', mitre: 'T1530 → T1552 → T1078' },
+    { target: 'Domain Controller (Tier-0)', severity: 'CRITICAL', score: 91, path: 'VPN → Workstation → Local Admin → SYSTEM → DCSync → Domain Admin', hops: '6 hops', gaps: '4 gaps chained', mitre: 'T1078 → T1548 → T1068 → T1003' },
+    { target: 'Active Directory', severity: 'HIGH', score: 82, path: 'GraphQL → Redis → Cached Creds → LDAP / AD', hops: '4 hops', gaps: '2 gaps chained', mitre: 'T1190 → T1552 → T1078.002' },
+  ];
+
+  const gapChains = [
+    { title: 'Cloud Misconfig + Software CVE → Data Exfiltration', severity: 'CRITICAL', mitre: 'T1530 → T1552 → T1078',
+      items: [{ l: 'Cloud Misconfig:', v: 'S3 bucket with public-read ACL exposes config files' }, { l: 'Software CVE:', v: 'CVE-2024-22234 in Spring Boot auth bypass' }, { l: 'Chained Path:', v: 'S3 Config → SSH Key → Auth Service → PostgreSQL (PII)' }] },
+    { title: 'Weak Authentication + Network Misconfig → Lateral Movement', severity: 'CRITICAL', mitre: 'T1190 → T1021 → T1565',
+      items: [{ l: 'Weak Auth:', v: 'Redis cache with no authentication on port 6379' }, { l: 'Network Misconfig:', v: 'No segmentation between cache tier and database tier' }, { l: 'Chained Path:', v: 'GraphQL → Redis Cache → PostgreSQL (PII)' }] },
+    { title: 'API Exposure + Identity Weakness → Privilege Escalation', severity: 'HIGH', mitre: 'T1190 → T1552 → T1078.002',
+      items: [{ l: 'API Exposure:', v: 'GraphQL introspection enabled, unlimited query depth' }, { l: 'Identity Weakness:', v: 'Service account with LDAP bind credentials cached in Redis' }, { l: 'Chained Path:', v: 'GraphQL → Redis → Cached Creds → LDAP / AD' }] },
+  ];
+
+  const escalationNodes = [
+    { label: 'jsmith\n(Std User)', severity: 'LOW' },
+    { label: 'Local Admin\n(WS-047)', severity: 'MEDIUM', tech: 'UAC Bypass' },
+    { label: 'svc_deploy', severity: 'HIGH', tech: 'Kerberoast' },
+    { label: 'NT AUTHORITY\nSYSTEM', severity: 'CRITICAL', tech: 'Kernel Exploit' },
+    { label: 'Server Admin\n(OU=Servers)', severity: 'HIGH', tech: 'SPN Crack' },
+    { label: 'DCSync\nCapability', severity: 'CRITICAL', tech: 'WriteDACL' },
+    { label: 'Domain Admin', severity: 'CRITICAL', tech: 'DCSync' },
+  ];
+
+  const escalationSteps = [
+    { step: 'Standard User', level: 'LOW', mitre: 'MITRE T1078.002', desc: 'Attacker begins as jsmith — a marketing dept standard user with no admin privileges' },
+    { step: 'Local Admin', level: 'MEDIUM', mitre: 'MITRE T1548.002', desc: 'UAC bypass on workstation WS-047 grants local administrator access' },
+    { step: 'SYSTEM', level: 'CRITICAL', mitre: 'MITRE T1068', desc: 'Kernel exploit CVE-2024-1086 escalates from Local Admin to NT AUTHORITY\\SYSTEM' },
+    { step: 'Service Account', level: 'HIGH', mitre: 'MITRE T1558.003', desc: 'Kerberoasting cracks svc_deploy SPN password (weak 8-char password)' },
+    { step: 'DCSync', level: 'CRITICAL', mitre: 'MITRE T1003.006', desc: 'WriteDACL on AdminSDHolder enables DCSync replication rights' },
+    { step: 'Domain Admin', level: 'CRITICAL', mitre: 'MITRE T1003.006', desc: 'Full domain compromise — attacker extracts all credential hashes via DCSync' },
+  ];
+
+  const nodeRing = (sev) => {
+    if (sev === 'CRITICAL') return 'border-red-400 bg-red-50';
+    if (sev === 'HIGH') return 'border-orange-400 bg-orange-50';
+    if (sev === 'MEDIUM') return 'border-yellow-400 bg-yellow-50';
+    return 'border-blue-300 bg-blue-50';
+  };
+
+  const stepColor = (l) => {
+    if (l === 'CRITICAL') return 'bg-red-500';
+    if (l === 'HIGH') return 'bg-orange-500';
+    if (l === 'MEDIUM') return 'bg-yellow-500';
+    return 'bg-blue-400';
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Stats */}
+      <div className="grid grid-cols-4 gap-3">
+        {summaryStats.map(s => (
+          <div key={s.label} className="bg-white rounded-lg border border-slate-200 p-3 text-center">
+            <div className="text-xl font-bold text-slate-800">{s.value}</div>
+            <div className="text-[11px] text-slate-500 mt-0.5">{s.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Top Attack Paths */}
+      <div className="bg-white rounded-lg border border-slate-200 p-4">
+        <h3 className="font-semibold text-slate-800 text-sm mb-1">Top Critical Attack Paths</h3>
+        <p className="text-[11px] text-slate-500 mb-3">Validated paths ranked by compound risk to critical assets</p>
+        <div className="space-y-2.5">
+          {attackPaths.map(ap => (
+            <div key={ap.target} className={`border rounded-lg p-3 ${ap.severity === 'CRITICAL' ? 'border-red-200 bg-red-50/30' : 'border-orange-200 bg-orange-50/30'}`}>
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="flex items-center gap-2">
+                  <SeverityBadge level={ap.severity} />
+                  <span className="text-xs font-semibold text-slate-800">{ap.target}</span>
+                </div>
+                <span className={`text-sm font-bold ${ap.severity === 'CRITICAL' ? 'text-red-600' : 'text-orange-600'}`}>Score: {ap.score}</span>
+              </div>
+              <div className="text-[11px] text-slate-700 font-mono mb-1.5 bg-slate-100 px-2 py-1 rounded">{ap.path}</div>
+              <div className="flex gap-4 text-[10px] text-slate-500">
+                <span>● {ap.hops}</span>
+                <span>● {ap.gaps}</span>
+                <span className="font-mono text-indigo-600">{ap.mitre}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Security Gap Chaining */}
+      <div className="bg-white rounded-lg border border-slate-200 p-4">
+        <h3 className="font-semibold text-slate-800 text-sm mb-1">Security Gap Chaining</h3>
+        <p className="text-[11px] text-slate-500 mb-3">Disparate exposures chained into contiguous attack paths</p>
+        <div className="space-y-2.5">
+          {gapChains.map(gc => (
+            <div key={gc.title} className={`border rounded-lg p-3 ${gc.severity === 'CRITICAL' ? 'border-red-200 bg-red-50/20' : 'border-orange-200 bg-orange-50/20'}`}>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <SeverityBadge level={gc.severity} />
+                  <span className="text-[11px] font-semibold text-slate-800">{gc.title}</span>
+                </div>
+                <span className="text-[10px] font-mono text-indigo-500">{gc.mitre}</span>
+              </div>
+              <div className="space-y-1">
+                {gc.items.map(item => (
+                  <div key={item.l} className="flex gap-2 text-[10px]">
+                    <span className="text-slate-400 font-medium w-28 shrink-0">{item.l}</span>
+                    <span className={item.l === 'Chained Path:' ? 'font-mono text-slate-700' : 'text-slate-600'}>{item.v}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Escalation Flow */}
+      <div className="bg-white rounded-lg border border-slate-200 p-4">
+        <div className="flex items-center justify-between mb-1">
+          <h3 className="font-semibold text-slate-800 text-sm">Privilege Escalation Mapping — Standard User to Domain Admin</h3>
+          <span className="text-xs text-green-600 font-medium bg-green-50 border border-green-200 px-2 py-0.5 rounded">100%</span>
+        </div>
+        <p className="text-[11px] text-slate-500 mb-3">Complete escalation chain from least-privileged to full domain control</p>
+        <div className="flex flex-wrap gap-1.5 mb-4">
+          {['UAC Bypass','Kerberoast','Kernel Exploit','SPN Crack','Token Impersonation','WriteDACL','DCSync'].map(t => (
+            <span key={t} className="text-[10px] bg-slate-100 text-slate-600 border border-slate-200 px-2 py-0.5 rounded-full">{t}</span>
+          ))}
+        </div>
+        <div className="flex items-center overflow-x-auto pb-2">
+          {escalationNodes.map((node, i) => (
+            <div key={i} className="flex items-center shrink-0">
+              {i > 0 && (
+                <div className="flex flex-col items-center mx-1.5">
+                  <span className="text-[9px] text-indigo-500 font-medium mb-0.5">{node.tech}</span>
+                  <ArrowRightIcon />
+                </div>
+              )}
+              <div className="flex flex-col items-center min-w-[68px]">
+                <div className={`w-11 h-11 rounded-lg flex items-center justify-center border-2 mb-1 ${nodeRing(node.severity)}`}>
+                  <UserIcon size={16} />
+                </div>
+                <span className="text-[10px] text-slate-700 font-medium text-center leading-tight whitespace-pre-line">{node.label}</span>
+                <SeverityBadge level={node.severity} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Escalation Steps */}
+      <div className="bg-white rounded-lg border border-slate-200 p-4">
+        <h3 className="font-semibold text-slate-800 text-sm mb-3">Escalation Progression — Step by Step</h3>
+        <div className="space-y-2">
+          {escalationSteps.map((s, i) => (
+            <div key={i} className="flex gap-3 items-start">
+              <div className="flex flex-col items-center shrink-0">
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white ${stepColor(s.level)}`}>{i + 1}</div>
+                {i < escalationSteps.length - 1 && <div className="w-px h-4 bg-slate-200 mt-0.5" />}
+              </div>
+              <div className="pb-1">
+                <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                  <span className="text-xs font-semibold text-slate-800">{s.step}</span>
+                  <SeverityBadge level={s.level} />
+                  <span className="text-[10px] font-mono text-indigo-500">{s.mitre}</span>
+                </div>
+                <p className="text-[11px] text-slate-500">{s.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Risk & Action Tab ──────────────────────────────────────────────────────
+function RiskActionTab() {
+  const summaryStats = [
+    { label: 'Toxic Combinations', value: '3' },
+    { label: 'Score Elevations', value: '3' },
+    { label: 'Choke Points', value: '2' },
+    { label: 'Noise Suppressed', value: '2' },
+    { label: 'Active Risk Factors', value: '9' },
+    { label: 'Max Adjusted Score', value: '97' },
+  ];
+
+  const toxicCombos = [
+    {
+      title: 'Critical CVE + Over-Privileged IAM + Internet-Facing', severity: 'CRITICAL',
+      asset: 'api-gateway-prod.acme.com', mitre: 'T1190 → T1078.004 → T1530',
+      items: [{ l: 'CVE:', v: 'Critical CVE (CVE-2024-3094)' }, { l: 'IAM:', v: 'Over-Privileged IAM Role (AdministratorAccess)' }, { l: 'Exposure:', v: 'Internet-Facing (port 443)' }, { l: 'Path to Crown Jewel:', v: 'API Gateway → Auth Service → PostgreSQL (PII)' }],
+    },
+    {
+      title: 'Kerberoastable SPN + WriteDACL + Tier-0 Proximity', severity: 'CRITICAL',
+      asset: 'svc_backup@acme.corp', mitre: 'T1558.003 → T1222 → T1003.006',
+      items: [{ l: 'Identity:', v: 'Kerberoastable SPN (weak password)' }, { l: 'ACL:', v: 'WriteDACL on AdminSDHolder' }, { l: 'Topology:', v: '2 hops from Domain Controller' }, { l: 'Path to Crown Jewel:', v: 'svc_backup → AdminSDHolder → DCSync → DA' }],
+    },
+    {
+      title: 'Public S3 + Cached Credentials + No Auth Redis', severity: 'CRITICAL',
+      asset: 'redis-cache-01.internal', mitre: 'T1552 → T1078.002 → T1003',
+      items: [{ l: 'Config:', v: 'No Authentication on Redis (port 6379)' }, { l: 'Credential:', v: 'Service account credentials cached in memory' }, { l: 'Topology:', v: 'Network path to LDAP/AD identity store' }, { l: 'Path to Crown Jewel:', v: 'Redis Cache → Cached Creds → LDAP / AD' }],
+    },
+  ];
+
+  const scoringItems = [
+    { asset: 'API Gateway', reason: 'Toxic Combination: CVE + IAM + Internet-facing (+24%)', base: 73, adj: 97, delta: '+24%', up: true },
+    { asset: 'Jump Server', reason: 'Choke Point (+19%): converges 5 attack paths', base: 68, adj: 87, delta: '+19%', up: true },
+    { asset: 'Redis Cache', reason: 'Choke Point (+29%): no auth + credential store', base: 65, adj: 94, delta: '+29%', up: true },
+    { asset: 'Dev Test Server', reason: 'No Reachability: isolated VLAN, no external paths (−57%)', base: 62, adj: 27, delta: '-57%', up: false },
+    { asset: 'Staging DB', reason: 'Dormant: no verified credential or service path (−51%)', base: 58, adj: 28, delta: '-51%', up: false },
+  ];
+
+  return (
+    <div className="space-y-4">
+      {/* Stats */}
+      <div className="grid grid-cols-6 gap-3">
+        {summaryStats.map(s => (
+          <div key={s.label} className="bg-white rounded-lg border border-slate-200 p-3 text-center">
+            <div className="text-xl font-bold text-slate-800">{s.value}</div>
+            <div className="text-[10px] text-slate-500 mt-0.5 leading-tight">{s.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Toxic Combinations */}
+      <div className="bg-white rounded-lg border border-slate-200 p-4">
+        <h3 className="font-semibold text-slate-800 text-sm mb-3">Toxic Combination Identification</h3>
+        <div className="space-y-3">
+          {toxicCombos.map(tc => (
+            <div key={tc.title} className="border border-red-200 bg-red-50/20 rounded-lg p-3">
+              <div className="flex items-start justify-between mb-2 gap-2">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <AlertTriIcon />
+                    <SeverityBadge level={tc.severity} />
+                    <span className="text-[11px] font-semibold text-slate-800">{tc.title}</span>
+                  </div>
+                  <div className="flex gap-4 text-[10px] text-slate-500 ml-5">
+                    <span>Asset: <span className="font-mono text-slate-700">{tc.asset}</span></span>
+                    <span className="font-mono text-indigo-500">{tc.mitre}</span>
+                  </div>
+                </div>
+                <button className="text-[10px] border border-slate-300 text-slate-500 hover:bg-slate-100 px-2 py-0.5 rounded shrink-0">Suppress</button>
+              </div>
+              <div className="space-y-1 ml-5">
+                {tc.items.map(item => (
+                  <div key={item.l} className="flex gap-2 text-[10px]">
+                    <span className="text-slate-400 font-medium w-28 shrink-0">{item.l}</span>
+                    <span className={item.l === 'Path to Crown Jewel:' ? 'font-mono text-slate-700' : 'text-slate-600'}>{item.v}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Contextual Risk Scoring */}
+      <div className="bg-white rounded-lg border border-slate-200 p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-semibold text-slate-800 text-sm">Contextual Risk Scoring</h3>
+          <button className="text-[11px] border border-slate-300 text-slate-600 px-2.5 py-1 rounded hover:bg-slate-50">Showing all</button>
+        </div>
+        <div className="space-y-2">
+          {scoringItems.map(item => (
+            <div key={item.asset} className="border border-slate-200 rounded-lg p-3 flex items-center gap-3">
+              <div className="flex-1 min-w-0">
+                <div className="text-xs font-semibold text-slate-800 mb-0.5">{item.asset}</div>
+                <div className="text-[10px] text-slate-500">{item.reason}</div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="text-[10px] text-slate-400">Base → Adjusted</span>
+                <span className="text-xs font-mono text-slate-500">{item.base}</span>
+                <ArrowRightIcon size={12} />
+                <span className={`text-xs font-mono font-bold ${item.up ? 'text-red-600' : 'text-green-600'}`}>{item.adj}</span>
+                <span className={`text-xs font-bold px-2 py-0.5 rounded ${item.up ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-700'}`}>{item.delta}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Main Layout ────────────────────────────────────────────────────────────
+function AttackPathQualys() {
+  const [activeTab, setActiveTab] = useState('discovery');
+
+  const etmNav = [
+    { label: 'Add-ons', Icon: PlusIcon },
+    { label: 'Cyber Risk Assistant', Icon: BotIcon },
+    { label: 'Home', Icon: HomeIcon },
+    { label: 'Dashboard', Icon: DashboardIcon },
+    { label: 'Inventory', Icon: PackageIcon },
+    { label: 'Risk Management', Icon: ShieldIcon },
+    { label: 'Attack Path', Icon: GitBranchIcon, active: true },
+  ];
+
+  const tabs = [
+    { id: 'discovery', label: 'Discovery' },
+    { id: 'analysis', label: 'Analysis' },
+    { id: 'risk', label: 'Risk & Action' },
+  ];
+
+  return (
+    <div className="flex h-screen bg-slate-100 overflow-hidden font-sans">
+      <div className="flex flex-col flex-1 overflow-hidden">
+        {/* Qualys Header */}
+        <header className="flex items-center justify-between px-4 py-2 bg-white border-b border-slate-200 shrink-0 z-10">
+          <div className="flex items-center gap-3">
+            <div className="w-7 h-7 rounded bg-[#E5002B] flex items-center justify-center">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="white" stroke="none">
+                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+              </svg>
+            </div>
+            <span className="text-sm font-semibold text-slate-800">
+              Qualys<span className="font-normal text-slate-400 ml-1">Enterprise TruRisk™ Platform</span>
+            </span>
+          </div>
+          <div className="flex items-center gap-1">
+            <button className="p-1.5 rounded hover:bg-slate-100 text-slate-400"><SearchIcon /></button>
+            <button className="p-1.5 rounded hover:bg-slate-100 text-slate-400"><BellIcon /></button>
+            <button className="p-1.5 rounded hover:bg-slate-100 text-slate-400"><SettingsIcon /></button>
+            <div className="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-semibold ml-1">A</div>
+          </div>
+        </header>
+
+        <div className="flex flex-1 overflow-hidden">
+          {/* ETM Sidebar */}
+          <aside className="w-44 bg-[#1e2642] flex flex-col shrink-0">
+            <div className="px-3 py-3 border-b border-white/10">
+              <div className="text-[10px] text-white/40 font-medium uppercase tracking-wider mb-0.5">ETM</div>
+              <div className="text-xs font-semibold text-white leading-tight">Enterprise TruRisk Management</div>
+            </div>
+            <nav className="flex-1 py-1.5 overflow-y-auto">
+              {etmNav.map(({ label, Icon, active }) => (
+                <button key={label}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 text-left text-[11px] transition-colors
+                    ${active ? 'bg-indigo-600 text-white font-medium' : 'text-white/60 hover:bg-white/10 hover:text-white'}`}>
+                  <Icon />
+                  {label}
+                </button>
+              ))}
+            </nav>
+          </aside>
+
+          {/* Main */}
+          <main className="flex-1 overflow-y-auto bg-[hsl(220,20%,97%)]">
+            <div className="p-5">
+              <h1 className="text-lg font-bold text-slate-800 mb-3">Attack Path</h1>
+
+              {/* Tabs */}
+              <div className="flex border-b border-slate-200 mb-4">
+                {tabs.map(tab => (
+                  <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+                    className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors
+                      ${activeTab === tab.id ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              {activeTab === 'discovery' && <DiscoveryTab />}
+              {activeTab === 'analysis' && <AnalysisTab />}
+              {activeTab === 'risk' && <RiskActionTab />}
+            </div>
+          </main>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<AttackPathQualys />);
+</script>
+</body>
+</html>
