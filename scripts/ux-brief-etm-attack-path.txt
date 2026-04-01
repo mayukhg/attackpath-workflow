@@ -1,0 +1,658 @@
+================================================================================
+ETM ATTACK PATH INSIGHTS — UX TEAM BRIEF
+Qualys Enterprise TruRisk™ Platform  |  ETM Module
+================================================================================
+Document Type : Generic UX Onboarding Brief
+Audience      : UX / Design Team
+Purpose       : Foundation understanding before Figma frame production
+Covers        : What it is · Why it exists · Main user flow · Tab-by-tab flow
+================================================================================
+
+
+================================================================================
+SECTION 1 — WHAT IS ETM ATTACK PATH?
+================================================================================
+
+ETM Attack Path Insights is a feature within the Qualys Enterprise TruRisk™
+Management (ETM) platform that visualizes how a real-world attacker could move
+through an organization's environment — from an initial entry point all the way
+to a high-value target (called a Crown Jewel).
+
+Rather than presenting a flat list of individual vulnerabilities, Attack Path
+Insights chains vulnerabilities, misconfigurations, and identity weaknesses
+together into a connected attack narrative. Each chain is called an Attack Path.
+
+--------------------------------------------------------------------------------
+KEY CONCEPTS
+--------------------------------------------------------------------------------
+
+  ATTACK PATH
+  An ordered sequence of exploitable steps an attacker could take — starting
+  from an internet-facing or internal entry point and ending at a Crown Jewel.
+  Each step in the chain is called a hop. Between each hop is a Security Gap
+  (the exploitable weakness that enables the move).
+
+  Example path:
+  Internet Entry Point
+    → Exposed VM (CVE-2024-1234, CVSS 9.8)
+      → Misconfigured IAM Role (AdministratorAccess)
+        → S3 Bucket (lateral movement via cross-account access)
+          → Finance Database (Crown Jewel — PII data)
+
+  CROWN JEWEL
+  Any asset the organization considers business-critical — production databases,
+  financial systems, PII stores, intellectual property. The platform maps every
+  attack path that can reach a Crown Jewel.
+
+  SECURITY GAP
+  The exploitable condition on the edge between two nodes in the attack chain.
+  Each gap has a technique (MITRE ATT&CK ID), a CVE or config weakness, and a
+  risk contribution score.
+
+  RESOURCE (ASSET)
+  Any node in an attack path — a virtual machine, API gateway, IAM role, database,
+  S3 bucket, identity, etc. One resource can belong to multiple attack paths
+  (many-to-many relationship). This cross-path membership is a core concept
+  surfaced throughout the UI.
+
+  TOXIC COMBINATION
+  A node where three or more critical risk factors intersect simultaneously:
+  an unpatched CVE + an IAM misconfiguration + internet exposure. These are
+  automatically flagged as the highest remediation priority.
+
+  CONTEXTUAL RISK SCORE
+  A score that adjusts a node's base CVSS severity based on its position in the
+  attack chain. A chokepoint node that sits on multiple paths is elevated.
+  An isolated node with no lateral movement path is suppressed. This prevents
+  teams from wasting effort on technically high-severity but contextually
+  low-risk assets.
+
+  SHARED RESOURCE
+  A resource (asset) that appears in two or more attack paths. Remediating a
+  shared resource reduces risk across ALL paths it belongs to simultaneously.
+  This is surfaced via orange "N shared" badges in the UI.
+
+--------------------------------------------------------------------------------
+WHERE IT LIVES
+--------------------------------------------------------------------------------
+
+  Attack Path Insights is accessed from the left navigation of the ETM platform.
+  No separate login or tool required. The entry flow is:
+
+    ETM Login  →  ETM Left Nav  →  Click "Attack Path"  →  Module loads
+
+  The module defaults to the Discover tab on load.
+
+--------------------------------------------------------------------------------
+THE THREE-TAB STRUCTURE
+--------------------------------------------------------------------------------
+
+  The entire user journey is organized into three sequential tabs:
+
+    01 DISCOVER   — Find and surface attack paths across the environment
+    02 ANALYZE    — Drill into a selected path and understand its blast radius
+    03 REMEDIATE  — Take action to reduce risk on the selected path
+
+  These tabs represent a deliberate workflow: you discover first, understand
+  second, and act third. Context (the selected attack path) carries forward
+  automatically from Discover into Analyze and Remediate.
+
+
+================================================================================
+SECTION 2 — WHY ETM ATTACK PATH?
+================================================================================
+
+--------------------------------------------------------------------------------
+THE PROBLEM IT SOLVES
+--------------------------------------------------------------------------------
+
+  Traditional vulnerability management tools surface thousands of individual
+  vulnerabilities ranked by CVSS score. This creates two major problems:
+
+    PROBLEM 1 — NO CONTEXT
+    A CVE with a CVSS score of 9.8 on an isolated internal server may pose
+    near-zero real-world risk. The same CVE on an internet-facing server that
+    is one hop from a Finance database is catastrophically dangerous. CVSS
+    alone cannot tell the difference.
+
+    PROBLEM 2 — NO CHAIN VISIBILITY
+    Attackers don't exploit one vulnerability in isolation. They chain multiple
+    weaknesses together — a known CVE to get initial access, a misconfigured
+    IAM role to escalate privileges, an overly permissive S3 bucket to move
+    laterally, and finally a crown jewel database as the end target. Traditional
+    tools show each of those weaknesses as separate, unrelated findings.
+
+  Attack Path Insights solves both problems by showing vulnerabilities as they
+  would be experienced by an attacker: as a connected, end-to-end chain.
+
+--------------------------------------------------------------------------------
+THE VALUE IT DELIVERS
+--------------------------------------------------------------------------------
+
+  FOR SECURITY ANALYSTS
+    · See exactly which vulnerabilities, when combined, create a viable attack
+    · Know which assets are chokepoints across multiple paths (shared resources)
+    · Prioritize by actual exploitability and business impact, not CVSS alone
+    · Answer "are we exposed to this new threat?" in minutes, not hours
+
+  FOR CISO / SECURITY LEADERSHIP
+    · Boardroom-ready KPI summary (5 numbers that tell the full risk story)
+    · Risk expressed in business terms: crown jewels at risk, entry points,
+      attack paths to finance / PII / customer data
+    · Measurable ROI on remediation — each fix has a numeric multiplier
+    · Audit trail for every action taken (fixed, ticketed, or suppressed)
+
+  FOR REMEDIATION TEAMS
+    · Prioritized action list — critical first, with ETA, effort, and ROI
+    · Cross-path blast radius: fixing one shared resource closes risk on
+      multiple paths simultaneously
+    · Direct ITSM ticket creation (ServiceNow, Jira) without leaving the UI
+
+--------------------------------------------------------------------------------
+THE KEY DIFFERENTIATORS IN THE UI
+--------------------------------------------------------------------------------
+
+  1. SHARED RESOURCES / CROSS-PATH VISIBILITY
+     Assets that appear in more than one attack path are marked with an orange
+     "N shared" badge. The UI surfaces this everywhere:
+       · In the Discover table (Resources column)
+       · On flow nodes in Analyze ("In N paths" teal badge)
+       · On asset metadata cards ("Also in N other paths")
+       · On remediation actions ("Affects N paths" teal chip)
+
+  2. RESOURCE DETAIL PANEL
+     Any resource can be clicked anywhere in the UI to open a right-side
+     slide-over panel showing the resource's full metadata PLUS every attack
+     path it belongs to. This inverse lookup (resource → paths) is unique to
+     this feature and enables cross-path reasoning without losing context.
+
+  3. CONTEXTUAL RISK SCORING
+     Risk scores are dynamically adjusted by attack path topology. The same
+     asset gets a higher score if it is a chokepoint and a lower score if it
+     is isolated. This surfaces in the Analyze tab as a scoring delta table.
+
+  4. TOXIC COMBINATIONS
+     Nodes where CVE + IAM misconfiguration + internet exposure co-exist are
+     auto-detected and flagged. These are the highest remediation priority
+     regardless of individual CVSS scores.
+
+  5. MITRE ATT&CK MAPPING
+     Every edge in the attack chain and every privilege escalation step is
+     tagged with the corresponding MITRE ATT&CK technique ID. This connects
+     the platform's output to industry-standard threat intelligence vocabulary.
+
+
+================================================================================
+SECTION 3 — MAIN USER FLOW OF ETM ATTACK PATH
+================================================================================
+
+The primary user journey follows a linear Discover → Analyze → Remediate arc.
+A secondary journey exists for cross-path investigation via the Resource Detail
+Panel (which can be triggered from any tab).
+
+--------------------------------------------------------------------------------
+PRIMARY JOURNEY — LINEAR (MOST COMMON)
+--------------------------------------------------------------------------------
+
+  STEP 1 — LOGIN & NAVIGATE
+  User logs into the Qualys ETM platform and clicks "Attack Path" in the left
+  navigation. The Attack Path Insights module loads, defaulting to Discover.
+
+  STEP 2 — SCAN THE DASHBOARD (DISCOVER)
+  User reads the 5 KPI summary cards to assess the overall risk posture:
+  total paths, critical paths, average risk score, crown jewels exposed, entry
+  points. This gives immediate situational awareness without scrolling.
+
+  STEP 3 — SEARCH OR FILTER (DISCOVER)
+  User applies filters (severity, entry point type, time range) or uses the
+  entity search to find specific paths. The search is cross-field — it matches
+  asset names, CVE IDs, MITRE technique IDs, and flow node labels simultaneously.
+
+  STEP 4 — BROWSE THE TABLE (DISCOVER)
+  User scans the attack paths table, sorted by risk score descending. They note
+  the Resources column — paths with orange "N shared" badges indicate high-value
+  targets for remediation (fixing those resources impacts multiple paths).
+
+  STEP 5 — SELECT A PATH (DISCOVER → ANALYZE)
+  User identifies a critical path they want to investigate and clicks "Analyze".
+  The path's CID and context carry forward into the Analyze tab automatically.
+
+  STEP 6 — CHECK THE SHARED RESOURCES BANNER (ANALYZE)
+  On entering Analyze, the user may see an orange warning banner if the selected
+  path shares resources with other attack paths. This immediately signals cross-
+  path blast radius and prompts the user to consider the wider impact before
+  diving into details.
+
+  STEP 7 — TRACE THE ATTACK CHAIN (ANALYZE)
+  User studies the visual attack flow graph — 5 nodes connected by dashed arrows.
+  Nodes are colour-coded by type (entry point, vulnerable host, IAM, lateral
+  move, crown jewel). MITRE technique tags appear on each edge.
+
+  STEP 8 — INSPECT SECURITY GAPS (ANALYZE)
+  User clicks on an edge between two nodes to reveal the Security Gap detail
+  panel — the specific technique, CVE, and configuration weakness that enables
+  the move between those two nodes.
+
+  STEP 9 — REVIEW ASSET METADATA (ANALYZE)
+  User reviews per-node asset cards showing OS, open ports, services,
+  exploitability, and criticality. Shared resources show a teal "In N paths"
+  badge and list the other paths they belong to. Unique resources show a green
+  "Unique to this path" indicator.
+
+  STEP 10 — OPEN RESOURCE DETAIL PANEL (ANALYZE — OPTIONAL)
+  User clicks any asset name or "View full details" link to open the Resource
+  Detail Panel — a right-side slide-over showing full metadata plus all attack
+  paths that contain this resource. A cross-path insight tip appears if the
+  resource is shared across multiple paths.
+
+  STEP 11 — REVIEW CONTEXTUAL RISK SCORING (ANALYZE)
+  User reviews the adjusted risk scores — seeing which assets have been elevated
+  (chokepoints) and which suppressed (isolated). This confirms prioritization
+  logic before moving to remediation.
+
+  STEP 12 — REVIEW TOXIC COMBINATIONS (ANALYZE)
+  User checks the auto-detected toxic combination nodes. These are the absolute
+  highest priority — one asset with three simultaneous critical risk factors.
+  Clicking the asset name opens the Resource Detail Panel for that asset.
+
+  STEP 13 — REVIEW PRIVILEGE ESCALATION + IDENTITY CHAIN (ANALYZE)
+  User reviews the step-by-step privilege escalation map (MITRE-tagged) and the
+  identity / lateral movement section showing AD groups, GPO exposure, and
+  Kerberos delegation risks.
+
+  STEP 14 — MOVE TO REMEDIATE (ANALYZE → REMEDIATE)
+  User clicks "Remediate" tab. The selected path context is maintained.
+
+  STEP 15 — READ THE RISK SUMMARY (REMEDIATE)
+  User reads the 3 summary cards: toxic combo count, assets with elevated scores,
+  and average ROI across all actions. Shapes expectations for the work ahead.
+
+  STEP 16 — WORK THROUGH THE ACTION LIST (REMEDIATE)
+  User reviews the prioritized action list (Critical → High → Medium → Low).
+  For each action they note:
+    · ETA and effort level
+    · ROI multiplier (higher = more leverage)
+    · Whether the action affects shared resources ("Affects N paths" chip)
+    · Whether the action is flagged as a toxic combination
+
+  STEP 17 — TAKE ACTION (REMEDIATE)
+  For each action the user chooses one of three responses:
+    · Mark Fixed  — action is resolved; row gets strikethrough; risk score drops
+    · Create Ticket — creates an ITSM ticket (ServiceNow, Jira) for the action
+    · Suppress — accepts the risk with a documented justification and owner
+
+  STEP 18 — PATH CLOSES (REMEDIATE)
+  When all critical actions are addressed, the path closes. The risk score drops
+  from its original value (e.g. 94) to a reduced value (e.g. 38), shown as a
+  prominent delta. CTAs offer "Return to Discover" or "View next critical path".
+
+--------------------------------------------------------------------------------
+SECONDARY JOURNEY — CROSS-PATH INVESTIGATION (ON DEMAND)
+--------------------------------------------------------------------------------
+
+  This journey can be triggered from any tab at any time.
+
+  TRIGGER
+  User clicks any resource, asset name, "Affects N paths" chip, or
+  "View full details" link anywhere in Discover, Analyze, or Remediate.
+
+  ACTION
+  The Resource Detail Panel slides in from the right (380px wide overlay).
+  The user can see:
+    · Full asset metadata (OS, ports, services, exploitability, criticality)
+    · List of ALL attack paths containing this resource
+    · Cross-path insight tip if the resource is shared
+
+  NAVIGATION
+  User can click "View path →" on any listed path to jump to that path's
+  Analyze view, effectively pivoting their investigation to a different attack
+  path via a shared asset.
+
+  CLOSE
+  Clicking × or clicking outside the panel returns the user to exactly where
+  they were before opening it — no context is lost.
+
+--------------------------------------------------------------------------------
+DECISION POINTS IN THE FLOW
+--------------------------------------------------------------------------------
+
+  DECISION 1 — at end of Discover
+  "Is this path worth investigating?"
+    Yes → Click Analyze → path context passes to Analyze tab
+    No  → Continue browsing or refine filters
+
+  DECISION 2 — at end of Analyze
+  "Do I understand the risk well enough to remediate?"
+    Yes → Click Remediate → path context passes to Remediate tab
+    No  → Continue exploring nodes, edges, identity chain, or toxic combos
+
+  DECISION 3 — for each action in Remediate
+  "How do I handle this action?"
+    Fix now   → Mark Fixed
+    Fix later → Create Ticket (assigns to ITSM)
+    Accept    → Suppress with documented justification
+
+  DECISION 4 — after all actions processed
+  "Are all actions addressed?"
+    Yes → Path closes; success state; return to Discover or view next path
+    No  → Loop back; remaining actions still visible in the list
+
+--------------------------------------------------------------------------------
+EXIT POINTS
+--------------------------------------------------------------------------------
+
+  · Return to Discover from Analyze (via "← Back to Discover" link)
+  · Return to Discover from Remediate (via "← Return to Discover" CTA)
+  · Jump to a different path via Resource Detail Panel path list
+  · Navigate to a different ETM module via left nav
+
+
+================================================================================
+SECTION 4 — TAB-WISE FLOW DESCRIPTION
+================================================================================
+
+--------------------------------------------------------------------------------
+TAB 01 — DISCOVER
+Purpose: Surface all attack paths and help the user identify which one to
+         investigate based on severity, risk score, and resource overlap.
+Colour:  Blue (#1d4ed8)
+--------------------------------------------------------------------------------
+
+  ON LOAD
+  The Discover tab is the default view when the module opens. It loads with
+  all attack paths pre-populated in the table, no filters active, sorted by
+  risk score descending.
+
+  REGION 1 — KPI SUMMARY CARDS (top of tab)
+  Five metric cards displayed horizontally across the full tab width.
+  Each card shows a label, a large numeric value, and an optional trend delta.
+    · Total Attack Paths   — overall count of identified chains
+    · Critical Paths       — paths with CRITICAL severity rating
+    · Avg Risk Score       — mean contextual risk score across all paths
+    · Crown Jewels Exposed — count of crown jewel assets reachable via a path
+    · Entry Points         — count of distinct entry points across all paths
+
+  These cards are read-only. They give instant situational awareness without
+  requiring any interaction. They update as filters are applied.
+
+  REGION 2 — FILTER BAR (below KPI cards)
+  A horizontal bar containing:
+    · Full-text entity search field — matches across asset names, CVE IDs,
+      MITRE technique IDs, flow node labels, and remediation action text.
+      Matching rows display a yellow "match chip" showing what matched and
+      where. Non-matching rows are removed from the table.
+    · Severity filter dropdown — All / Critical / High / Medium / Low
+    · Entry Point filter dropdown — All / Internet / Internal / Cloud
+    · Time Range filter dropdown — Last 7d / 30d / 90d / Custom
+    · Active filter chips appear below the bar; each has an × to dismiss
+    · Results count updates to "Showing X of Y attack paths"
+    · Empty state shown if no rows match, with guidance to clear filters
+
+  REGION 3 — ATTACK PATHS TABLE (main content area)
+  A sortable table listing all matching attack paths. Each row represents
+  one complete attack path. Columns:
+    · CID          — unique path identifier (e.g. AP-5014), monospace font
+    · Chain        — truncated text representation of the hop sequence
+                     e.g. "Internet → VM → IAM → S3 → Finance DB"
+    · Severity     — colour-coded badge (Critical / High / Medium / Low)
+    · Hops         — number of nodes in the chain
+    · Gaps         — number of exploitable edges between nodes
+    · Risk Score   — contextual risk score (0–100) with an inline colour bar
+                     sorted descending by default
+    · Resources    — count of assets on this path + shared resource badge:
+                     orange "N shared" if any resources appear in other paths
+                     green "unique" if all resources are exclusive to this path
+    · Action       — "Analyze →" button; visible on hover
+
+  Row interactions:
+    · Hover state     — row highlights; Analyze button becomes prominent
+    · Click "Analyze" — path CID context carries to Analyze tab; tab switches
+
+  Empty state:
+    If no paths match the current filters, an empty state illustration and
+    guidance text replace the table body with a "Clear all filters" CTA.
+
+  OUTCOME
+  User selects a path and clicks Analyze. CID context is passed to Tab 02.
+
+--------------------------------------------------------------------------------
+TAB 02 — ANALYZE
+Purpose: Deep-dive into the selected attack path. Understand the full blast
+         radius including shared resources, security gaps, contextual risk,
+         toxic combinations, privilege escalation, and identity exposure.
+Colour:  Teal (#0e7490)
+--------------------------------------------------------------------------------
+
+  ON LOAD
+  The Analyze tab loads with the selected path's CID in the context header
+  banner. All sections below load for that specific path. The user can return
+  to Discover at any time without losing their position.
+
+  REGION 1 — PATH CONTEXT HEADER (pinned at top)
+  A full-width banner showing:
+    · Path CID (e.g. AP-5014) — large monospace, teal colour
+    · Severity badge (e.g. CRITICAL — red pill)
+    · Status badge (e.g. Active / In Review / Mitigated)
+    · Risk Score (large number, red)
+    · "← Back to Discover" navigation link (right side)
+
+  This header remains visible as the user scrolls through the sections below.
+  It always shows which path is currently in context.
+
+  REGION 2 — SHARED RESOURCES WARNING BANNER (conditional)
+  An orange full-width banner that appears ONLY when the selected path shares
+  one or more resources with other attack paths.
+  Contains:
+    · Warning icon + heading stating how many resources are shared and with
+      how many other paths (e.g. "4 resources shared with 2 other paths")
+    · Inline chips for each shared resource name + how many paths it is in
+    · Sub-text explaining the cross-path blast radius implication
+  Dismissible via × button.
+  Purpose: Alerts the analyst to cross-path impact BEFORE they dive into
+  details, so they factor it into their prioritization thinking.
+
+  REGION 3 — ASSET TYPE BREAKDOWN & ATTACK FLOW GRAPH
+  The visual centrepiece of the Analyze tab. Shows:
+    Asset type count strip (above graph):
+      A horizontal row of icon + count labels e.g.
+      "Hosts: 2 · IAM Roles: 1 · Storage: 1 · Databases: 1"
+
+    Attack flow graph:
+      Nodes connected by dashed arrows, left to right, showing the full chain.
+      Each node is colour-coded by type:
+        · Entry Point   — light red  (internet-facing exposure)
+        · Vulnerable Host — light orange (CVE on a host)
+        · Identity/IAM  — light yellow (misconfigured role or identity)
+        · Lateral Move  — light purple (cross-account or service move)
+        · Crown Jewel   — dark slate with red border (high-value target)
+      Each node shows: asset name, sub-label (e.g. CVSS 9.8 · Unpatched),
+      and a phase badge (Discovered / Analyzed / Remediated).
+      Edges show MITRE ATT&CK technique tags (teal pills).
+      Nodes that appear in multiple attack paths show a teal "In N paths" badge.
+
+    Edge interactions:
+      Clicking an edge reveals the Security Gap detail inline or in a card:
+        · Technique name and MITRE ID
+        · CVE reference (clickable)
+        · Configuration weakness description
+        · Risk contribution to the overall path score
+
+    Node interactions:
+      Clicking a node (or its "View details" link) opens the Resource Detail
+      Panel slide-over (see cross-path journey above).
+
+  REGION 4 — ASSET METADATA ENRICHMENT CARDS
+  Below the flow graph, one card per node showing Qualys-enriched context:
+    · OS version
+    · Open ports and services
+    · Exploitability score (bar + numeric)
+    · Business criticality rating
+    · "In N paths" teal badge if shared (with which paths listed as chips)
+    · OR "✓ Unique to this path" in green if not shared
+    · "View full details →" link to open Resource Detail Panel
+
+  REGION 5 — RESOURCE DETAIL PANEL (overlay, triggered on demand)
+  A 380px right-side slide-over panel that overlays the main content.
+  Opens when any resource/asset is clicked anywhere in the Analyze tab.
+  Contains:
+    · Resource name, type badge, severity badge, × close button
+    · Full metadata: OS, ports, services, exploitability, criticality
+    · "Part of N Attack Paths" section listing every path containing this
+      resource, with path ID, truncated chain, severity, and "View path →" link
+    · Cross-path insight tip (teal info box) if shared across multiple paths
+  Closing the panel returns the user to exactly where they were.
+
+  REGION 6 — CONTEXTUAL RISK SCORING
+  A table showing how each asset's risk score has been adjusted:
+    · Asset name
+    · Base score (raw CVSS-derived)
+    · Adjusted score (after path topology analysis)
+    · Delta (+ or – with percentage)
+    · Reason tag (e.g. "Toxic combo · internet-facing" or "Isolated")
+  Increases shown in red with ↑ arrow; decreases in green with ↓ arrow.
+
+  REGION 7 — TOXIC COMBINATIONS
+  Cards for each auto-detected node where CVE + IAM + Exposure intersect.
+  Each card shows:
+    · Asset name (clickable → opens Resource Detail Panel)
+    · Three intersecting factor chips (CVE chip, IAM chip, Exposure chip)
+    · TOXIC COMBO badge in dark red
+  These are the highest-priority items for the remediation team.
+
+  REGION 8 — PRIVILEGE ESCALATION MAPPING
+  A numbered step-by-step chain showing how an attacker would escalate from
+  a standard user account to full domain compromise:
+    · Step number circle (teal, filled)
+    · Action description
+    · MITRE ATT&CK technique chip (e.g. T1078 Valid Accounts)
+  Provides the narrative a security team can use to brief stakeholders.
+
+  REGION 9 — IDENTITY & LATERAL MOVEMENT
+  A list showing identity and access management exposure on this path:
+    · Service account names
+    · AD group memberships (with risk badges)
+    · GPO exposure (e.g. Unrestricted PowerShell)
+    · Kerberos delegation risks (e.g. Unconstrained delegation)
+  Each row has an icon (identity / group / policy / kerberos), a label,
+  and a risk severity badge.
+
+  OUTCOME
+  User understands the full blast radius of the selected path and clicks
+  "Remediate" to move to Tab 03. Path context carries forward automatically.
+
+--------------------------------------------------------------------------------
+TAB 03 — REMEDIATE
+Purpose: Take prioritized action to reduce risk on the selected path. Each
+         action can be fixed, ticketed, or suppressed with full audit trail.
+Colour:  Green (#15803d)
+--------------------------------------------------------------------------------
+
+  ON LOAD
+  The Remediate tab loads with the same selected path context. A risk summary
+  row gives a quick sense of the total workload. The action list is pre-sorted
+  by priority.
+
+  REGION 1 — RISK SUMMARY CARDS (top of tab)
+  Three cards giving a snapshot of the remediation workload:
+    · Toxic Combos        — number of toxic combination actions to address
+    · Score Elevated      — number of assets with elevated contextual scores
+    · Avg ROI             — average ROI multiplier across all available actions
+  These cards are read-only and serve as a pre-flight summary.
+
+  REGION 2 — PRIORITIZED ACTION LIST (main content area)
+  A ranked list of all remediation actions for the selected path, grouped into
+  severity sections: CRITICAL → HIGH → MEDIUM → LOW.
+
+  Each action row contains:
+
+    IDENTIFICATION
+    · Severity dot (colour-coded, matches the section header)
+    · Action title describing what to do (e.g. "Patch CVE-2024-1234 on
+      Exposed VM", "Restrict IAM Role to least-privilege access")
+    · Sub-text: asset name and type
+
+    FLAGS (contextual, shown only when applicable)
+    · "⚠️ TOXIC COMBO" amber badge — if this action addresses a toxic node
+    · "🔗 Affects N paths" teal chip (clickable) — if this action's resource
+      is shared across multiple paths. Clicking opens the Resource Detail Panel
+      for that resource, showing all affected paths.
+
+    METRICS (right side)
+    · ETA — estimated time to implement (e.g. 2h, 1d)
+    · Effort — Low / Medium / High (colour-coded green / amber / red)
+    · ROI — numeric multiplier (e.g. 8.2×)
+          ≥ 7×:   green  — highest leverage, fix first
+          4–7×:   amber  — moderate leverage
+          < 4×:   grey   — lower leverage
+          ROI = Risk Reduction Value ÷ Remediation Cost
+
+    ACTION BUTTONS (visible on row hover)
+    · Mark Fixed    — resolves the action immediately; row gets a green
+                      checkmark and strikethrough; path risk score updates
+    · Create Ticket — creates an ITSM ticket (ServiceNow, Jira) for this
+                      action and assigns it to the relevant team
+    · Suppress      — accepts the risk; prompts for a written justification
+                      and an owner; creates a timestamped audit record
+
+  Loop behaviour:
+  After addressing some actions, remaining actions stay visible. An indicator
+  shows progress (e.g. "7 of 12 actions addressed"). An orange banner prompts
+  the user if critical actions remain unaddressed.
+
+  REGION 3 — OUTCOME STATE
+  When all critical actions are addressed, the path transitions to a success
+  state:
+    · Full-width green success banner
+    · Path ID + "Risk Reduced" confirmation
+    · Risk score delta displayed prominently (e.g. 94 → 38, ▼ 60%)
+    · All action rows show green checkmarks with strikethrough
+    · Two CTAs:
+        "← Return to Discover"  — go back and investigate another path
+        "View next critical path →" — jump directly to the next highest-risk
+                                      open path in the queue
+
+  AUDIT TRAIL
+  Every action taken (fixed, ticketed, or suppressed) is recorded with:
+    · Action type
+    · Timestamp
+    · User / owner
+    · Justification text (for suppressions)
+  This record is available for compliance reporting and security audits.
+
+  OUTCOME
+  Path is closed with a measurably reduced risk score. User returns to
+  Discover or moves to the next path in the prioritized queue.
+
+
+================================================================================
+QUICK REFERENCE SUMMARY
+================================================================================
+
+  MODULE         : Attack Path Insights
+  PLATFORM       : Qualys Enterprise TruRisk™ (ETM)
+  ENTRY POINT    : ETM Left Nav → "Attack Path"
+  DEFAULT TAB    : 01 Discover
+
+  TAB SEQUENCE   : Discover → Analyze → Remediate (linear, context carries)
+  TAB COLOURS    : Blue (Discover) · Teal (Analyze) · Green (Remediate)
+
+  KEY CONCEPTS   : Attack Path · Crown Jewel · Security Gap · Resource ·
+                   Toxic Combination · Contextual Risk Score · Shared Resource
+
+  NEW FEATURES   : Resources column (Discover) · Shared Resources Warning
+                   Banner (Analyze) · In N paths badge (Analyze) ·
+                   Resource Detail Panel slide-over (all tabs) ·
+                   Affects N paths chip (Remediate)
+
+  CORE DATA REL  : Many-to-many between Attack Paths and Resources
+                   One path has many resources
+                   One resource belongs to many paths
+                   Shared resources = cross-path blast radius indicators
+
+  PRIMARY FLOW   : 18 steps from login to path closure
+  DECISION POINTS: 4 (investigate?, remediate?, action type?, all done?)
+  EXIT POINTS    : Back to Discover · Next path · Other ETM module
+
+================================================================================
+END OF BRIEF — ETM ATTACK PATH UX ONBOARDING
+================================================================================

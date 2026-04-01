@@ -12,6 +12,7 @@ A self-contained, CDN-based React prototype demonstrating the full Attack Path I
 |-----|-------------|
 | `http://localhost:3000/insights.html` | **Attack Path Insights** — main screen (3 tabs) |
 | `http://localhost:3000/workflow.html` | **User Journey Workflow** diagram |
+| `http://localhost:3000/diagram.html`  | **Lucidchart-style flowchart** — exportable JPG |
 | `http://localhost:3000/index.html`    | Original Attack Path — Qualys reference screen |
 
 ---
@@ -42,6 +43,7 @@ AP_Test/
 ├── index.html        # Original Attack Path — Qualys screen (CDN React)
 ├── insights.html     # Attack Path Insights — new 3-tab screen (CDN React)
 ├── workflow.html     # User journey workflow diagram (pure HTML/CSS)
+├── diagram.html      # Lucidchart-style flowchart — swimlane + JPG export
 ├── server.cjs        # Lightweight Node.js HTTP server (port 3000)
 ├── start.bat / start.sh   # Startup scripts
 ├── stop.bat  / stop.sh    # Shutdown scripts

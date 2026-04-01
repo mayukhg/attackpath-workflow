@@ -226,6 +226,61 @@
     .legend-item { display: flex; align-items: center; gap: 5px; font-size: 10px; color: #475569; }
     .legend-box { width: 14px; height: 14px; border-radius: 3px; border: 1.5px solid; flex-shrink: 0; }
 
+    /* ── Attack Path Flow section ───────────────────────────────────────── */
+    .ap-flow-section {
+      border: 1.5px solid #e2e8f0; border-radius: 10px;
+      background: #fafbff; margin-bottom: 20px; overflow: hidden;
+    }
+    .ap-flow-header {
+      background: #1e293b; padding: 8px 20px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .ap-flow-header-label {
+      font-size: 10px; font-weight: 700; color: #94a3b8;
+      text-transform: uppercase; letter-spacing: 1px;
+    }
+    .ap-flow-header-title { font-size: 12px; font-weight: 600; color: #e2e8f0; }
+    .ap-flow-chain {
+      padding: 18px 24px 14px; display: flex; align-items: center;
+      gap: 0; justify-content: center;
+    }
+    .ap-node { display: flex; flex-direction: column; align-items: center; gap: 5px; min-width: 150px; }
+    .ap-node-box {
+      border-radius: 8px; padding: 9px 14px; font-size: 11px;
+      font-weight: 700; text-align: center; line-height: 1.35; width: 140px; border: 2px solid;
+    }
+    .ap-node-box.entry-point { background: #fef2f2; border-color: #fca5a5; color: #b91c1c; }
+    .ap-node-box.vuln-host   { background: #fff7ed; border-color: #fdba74; color: #c2410c; }
+    .ap-node-box.identity    { background: #fefce8; border-color: #fde047; color: #854d0e; }
+    .ap-node-box.lateral     { background: #f5f3ff; border-color: #c4b5fd; color: #6d28d9; }
+    .ap-node-box.crown-jewel { background: #1e293b; border-color: #E5002B; color: #fef2f2; }
+    .ap-node-sub { font-size: 9px; color: #94a3b8; text-align: center; line-height: 1.3; }
+    .ap-node-phase {
+      font-size: 9px; font-weight: 700; padding: 2px 8px; border-radius: 10px; margin-top: 2px;
+    }
+    .ap-node-phase.discover  { background: #dbeafe; color: #1d4ed8; border: 1px solid #93c5fd; }
+    .ap-node-phase.analyze   { background: #cffafe; color: #0e7490; border: 1px solid #67e8f9; }
+    .ap-node-phase.remediate { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+    .ap-chain-arrow { display: flex; align-items: center; padding: 0 6px; padding-bottom: 28px; }
+    .ap-connections {
+      display: grid; grid-template-columns: 1fr 1fr 1fr;
+      gap: 0; border-top: 1.5px solid #e2e8f0;
+    }
+    .ap-conn-cell {
+      padding: 10px 16px; display: flex; align-items: flex-start;
+      gap: 10px; border-right: 1.5px solid #e2e8f0;
+    }
+    .ap-conn-cell:last-child { border-right: none; }
+    .ap-conn-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; margin-top: 3px; }
+    .ap-conn-dot.discover  { background: #2563eb; }
+    .ap-conn-dot.analyze   { background: #0891b2; }
+    .ap-conn-dot.remediate { background: #16a34a; }
+    .ap-conn-text { font-size: 10px; color: #475569; line-height: 1.5; }
+    .ap-conn-text strong { display: block; font-size: 11px; font-weight: 700; margin-bottom: 2px; }
+    .ap-conn-text.discover strong  { color: #1d4ed8; }
+    .ap-conn-text.analyze strong   { color: #0e7490; }
+    .ap-conn-text.remediate strong { color: #15803d; }
+
     /* ── Screen mockup strip ─────────────────────────────────────────────── */
     .screen-strip {
       background: #0f172a; border-radius: 8px; padding: 8px 10px;
@@ -325,12 +380,92 @@
       <!-- Node 5 -->
       <div class="entry-node">
         <div class="entry-icon start">✦</div>
-        <div class="entry-node-label">Journey Begins</div>
+        <div class="entry-node-label">User Journey Begins</div>
         <div class="entry-node-sub">Qualys scan data pre-loaded (Last scan: 4 min ago)</div>
       </div>
 
     </div>
   </div>
+
+  <!-- ── ATTACK PATH FLOW ─────────────────────────────────────────────── -->
+  <div class="ap-flow-section">
+
+    <div class="ap-flow-header">
+      <div class="ap-flow-header-label">Attack Path Flow</div>
+      <div class="ap-flow-header-title">Example: Internet → Exposed VM → IAM Misconfiguration → Lateral Movement → Crown Jewel</div>
+    </div>
+
+    <div class="ap-flow-chain">
+
+      <div class="ap-node">
+        <div class="ap-node-box entry-point">🌐 Internet<br/>Entry Point</div>
+        <div class="ap-node-sub">Public-facing endpoint<br/>TCP/443 exposed</div>
+        <div class="ap-node-phase discover">Discovered</div>
+      </div>
+      <div class="ap-chain-arrow">
+        <svg width="40" height="12" viewBox="0 0 40 12"><line x1="0" y1="6" x2="33" y2="6" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4,2"/><polygon points="33,2 40,6 33,10" fill="#94a3b8"/></svg>
+      </div>
+
+      <div class="ap-node">
+        <div class="ap-node-box vuln-host">🖥 Exposed VM<br/>CVE-2024-1234</div>
+        <div class="ap-node-sub">CVSS 9.8 · Unpatched<br/>RCE vulnerability</div>
+        <div class="ap-node-phase analyze">Analyzed</div>
+      </div>
+      <div class="ap-chain-arrow">
+        <svg width="40" height="12" viewBox="0 0 40 12"><line x1="0" y1="6" x2="33" y2="6" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4,2"/><polygon points="33,2 40,6 33,10" fill="#94a3b8"/></svg>
+      </div>
+
+      <div class="ap-node">
+        <div class="ap-node-box identity">🔑 IAM Role<br/>Misconfigured</div>
+        <div class="ap-node-sub">Over-privileged role<br/>AdministratorAccess</div>
+        <div class="ap-node-phase analyze">Analyzed</div>
+      </div>
+      <div class="ap-chain-arrow">
+        <svg width="40" height="12" viewBox="0 0 40 12"><line x1="0" y1="6" x2="33" y2="6" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4,2"/><polygon points="33,2 40,6 33,10" fill="#94a3b8"/></svg>
+      </div>
+
+      <div class="ap-node">
+        <div class="ap-node-box lateral">↔ Lateral Move<br/>S3 Bucket Read</div>
+        <div class="ap-node-sub">Cross-account access<br/>Unencrypted bucket</div>
+        <div class="ap-node-phase remediate">Remediated</div>
+      </div>
+      <div class="ap-chain-arrow">
+        <svg width="40" height="12" viewBox="0 0 40 12"><line x1="0" y1="6" x2="33" y2="6" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4,2"/><polygon points="33,2 40,6 33,10" fill="#94a3b8"/></svg>
+      </div>
+
+      <div class="ap-node">
+        <div class="ap-node-box crown-jewel">👑 Crown Jewel<br/>Finance DB</div>
+        <div class="ap-node-sub">PII data · RDS prod<br/>Risk Score: 94</div>
+        <div class="ap-node-phase remediate">Remediated</div>
+      </div>
+
+    </div>
+
+    <div class="ap-connections">
+      <div class="ap-conn-cell">
+        <div class="ap-conn-dot discover"></div>
+        <div class="ap-conn-text discover">
+          <strong>01 Discover</strong>
+          The full attack path chain — from Internet Entry Point to Crown Jewel — surfaces in the attack paths table. User views CID, severity, hop count and risk score to prioritise which path to investigate.
+        </div>
+      </div>
+      <div class="ap-conn-cell">
+        <div class="ap-conn-dot analyze"></div>
+        <div class="ap-conn-text analyze">
+          <strong>02 Analyze</strong>
+          User drills into the selected path to inspect asset type breakdown, shared resource warning banner, node hover metadata (with 🔗 in N paths badge), security gap chaining (click edges to inspect), asset metadata enrichment, contextual risk scoring, toxic combinations, privilege escalation steps, MITRE ATT&amp;CK mapping, identity &amp; lateral movement chain, and the Resource Detail Panel slide-over.
+        </div>
+      </div>
+      <div class="ap-conn-cell">
+        <div class="ap-conn-dot remediate"></div>
+        <div class="ap-conn-text remediate">
+          <strong>03 Remediate</strong>
+          Prioritized fixes with ROI scoring — patch CVE-2024-1234, restrict IAM role, encrypt S3 bucket. Shared-resource actions show 🔗 Affects N paths cross-path blast radius. Each action shows ETA, Effort, and ROI. User marks actions Fixed, raises tickets, or suppresses with justification.
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /ap-flow-section -->
 
   <!-- ── PHASE HEADERS ─────────────────────────────────────────────────── -->
   <div class="phases-header">
@@ -368,10 +503,10 @@
       <!-- Screen state -->
       <div class="screen-strip">
         <div class="screen-dots"><span class="screen-dot r"></span><span class="screen-dot y"></span><span class="screen-dot g"></span></div>
-        <span class="screen-url">localhost:3000/insights.html</span>
+        <span class="screen-url">Attack Path</span>
         <span class="screen-tab active">01 Discover</span>
-        <span class="screen-tab">02 Analyze</span>
-        <span class="screen-tab">03 Remediate</span>
+        <span class="screen-tab" style="opacity:0.4;">🔒 02 Analyze</span>
+        <span class="screen-tab" style="opacity:0.4;">🔒 03 Remediate</span>
       </div>
 
       <!-- Step 1 -->
@@ -420,10 +555,28 @@
       </div>
 
       <!-- Step 3 -->
-      <div class="flow-node action">
+      <div class="flow-node action" data-tip="Entity-aware search: type any asset name, CVE ID, MITRE technique, node label, or remediation keyword to find all attack chains that touch that entity">
         <span class="flow-node-icon">🔍</span>
-        <div class="flow-node-title">Search Attack Paths</div>
-        <div class="flow-node-desc">Free-text search by title or crown jewel target — table filters in real-time</div>
+        <div class="flow-node-title">Search by Any Entity</div>
+        <div class="flow-node-desc">Search across all entities on every path — asset names, CVE IDs, techniques, nodes, gaps, and remediation actions</div>
+        <div class="sub-list">
+          <div class="sub-item">
+            <span class="sub-bullet blue"></span>
+            <span class="sub-text"><strong>Asset name</strong> — e.g. "redis", "api-gateway", "PostgreSQL"</span>
+          </div>
+          <div class="sub-item">
+            <span class="sub-bullet red"></span>
+            <span class="sub-text"><strong>CVE / technique</strong> — e.g. "CVE-2024-3094", "T1190", "DCSync"</span>
+          </div>
+          <div class="sub-item">
+            <span class="sub-bullet orange"></span>
+            <span class="sub-text"><strong>Edge / gap</strong> — e.g. "JWT Bypass", "WriteDACL", "public-read"</span>
+          </div>
+          <div class="sub-item">
+            <span class="sub-bullet purple"></span>
+            <span class="sub-text"><strong>Match chip</strong> shown in row indicating which entity matched</span>
+          </div>
+        </div>
       </div>
 
       <div class="connector">
@@ -457,6 +610,10 @@
             <span class="sub-bullet orange"></span>
             <span class="sub-text"><strong>Hops / Gaps</strong> — Path depth &amp; chained exposures</span>
           </div>
+          <div class="sub-item">
+            <span class="sub-bullet teal"></span>
+            <span class="sub-text"><strong>Resources</strong> — Count of linked resources + <strong style="color:#c2410c">N shared</strong> orange badge when resources overlap with other paths · <strong style="color:#166534">unique</strong> green badge when all resources are exclusive to this path</span>
+          </div>
         </div>
       </div>
 
@@ -486,10 +643,11 @@
       <div class="flow-node outcome">
         <span class="flow-node-icon">→</span>
         <div class="flow-node-title">Tab switches to 02 Analyze</div>
-        <div class="flow-node-desc">CID badge appears in tab header. Selected path context carries forward.</div>
+        <div class="flow-node-desc">CID badge appears in tab header. 02 Analyze and 03 Remediate tabs unlock only after this action. Selected path context carries forward.</div>
         <div class="flow-node-tags">
           <span class="tag green">CID 5014 loaded</span>
           <span class="tag teal">Tab auto-switches</span>
+          <span class="tag blue">02 Analyze unlocked</span>
         </div>
       </div>
 
@@ -504,10 +662,10 @@
       <!-- Screen state -->
       <div class="screen-strip">
         <div class="screen-dots"><span class="screen-dot r"></span><span class="screen-dot y"></span><span class="screen-dot g"></span></div>
-        <span class="screen-url">localhost:3000/insights.html</span>
+        <span class="screen-url">Attack Path</span>
         <span class="screen-tab">01 Discover</span>
         <span class="screen-tab active">02 Analyze · CID 5014</span>
-        <span class="screen-tab">03 Remediate</span>
+        <span class="screen-tab" style="opacity:0.4;">🔒 03 Remediate</span>
       </div>
 
       <!-- Step 1 -->
@@ -520,6 +678,45 @@
           <span class="tag slate">Risk 97</span>
           <span class="tag orange">Open</span>
           <span class="tag blue">← Back to all paths</span>
+        </div>
+      </div>
+
+      <div class="connector">
+        <div class="connector-line" style="min-height:8px"></div>
+        <span class="connector-arrow">▼</span>
+      </div>
+
+      <!-- Step 1b - Asset Type Breakdown -->
+      <div class="flow-node screen">
+        <span class="flow-node-icon">📦</span>
+        <div class="flow-node-title">Asset Type Breakdown</div>
+        <div class="flow-node-desc">Count of distinct asset types across all hops — hover any node for full asset metadata</div>
+        <div class="sub-list">
+          <div class="sub-item"><span class="sub-bullet blue"></span><span class="sub-text"><strong>4 Asset Types</strong> on this path (Internet Entry, Host/VM, Identity/IAM, Crown Jewel)</span></div>
+          <div class="sub-item"><span class="sub-bullet orange"></span><span class="sub-text"><strong>Hover any node</strong> in the flow graph to reveal OS, open ports, exploitability, and attack technique</span></div>
+          <div class="sub-item"><span class="sub-bullet purple"></span><span class="sub-text"><strong>Asset metadata</strong> sourced from Qualys scan (OS version, criticality, services)</span></div>
+        </div>
+      </div>
+
+      <div class="connector">
+        <div class="connector-line" style="min-height:8px"></div>
+        <span class="connector-arrow">▼</span>
+      </div>
+
+      <!-- Step 1c - Shared Resources Banner -->
+      <div class="flow-node action" style="border-color:#fed7aa; background:#fff7ed;" data-tip="Orange warning banner appears when 1+ resources in this path are also part of other attack paths — links directly to those resources">
+        <span class="flow-node-icon">⚠️</span>
+        <div class="flow-node-title">Shared Resources Warning Banner</div>
+        <div class="flow-node-desc">Orange banner surfaces when ≥ 1 resource on this path is shared with other attack paths</div>
+        <div class="sub-list">
+          <div class="sub-item">
+            <span class="sub-bullet orange"></span>
+            <span class="sub-text"><strong>Shared resource chips</strong> — clickable pills showing resource name + ×N count (how many paths share it)</span>
+          </div>
+          <div class="sub-item">
+            <span class="sub-bullet teal"></span>
+            <span class="sub-text"><strong>Blast-radius note</strong> — "remediating these reduces risk across multiple paths"</span>
+          </div>
         </div>
       </div>
 
@@ -546,6 +743,10 @@
             <span class="sub-bullet red"></span>
             <span class="sub-text"><strong>Node severity color</strong> — Critical/High/Medium border coding</span>
           </div>
+          <div class="sub-item">
+            <span class="sub-bullet teal"></span>
+            <span class="sub-text"><strong>🔗 In N paths</strong> teal badge on shared nodes — click to open Resource Detail Panel</span>
+          </div>
         </div>
       </div>
 
@@ -555,22 +756,22 @@
       </div>
 
       <!-- Step 3 -->
-      <div class="flow-node action">
+      <div class="flow-node action" data-tip="Click any edge in the attack path graph to inspect the specific security gap between two nodes">
         <span class="flow-node-icon">🔗</span>
         <div class="flow-node-title">Security Gap Chaining</div>
-        <div class="flow-node-desc">Shows how disparate exposures combine into one contiguous chain</div>
+        <div class="flow-node-desc">Click any edge arrow in the attack path graph to inspect the specific security gap for that connection · Disparate exposures chained into a contiguous attack path</div>
         <div class="sub-list">
           <div class="sub-item">
             <span class="sub-bullet red"></span>
-            <span class="sub-text">Weak Auth + Network Misconfig + CVE → chained path</span>
+            <span class="sub-text"><strong>Click any edge arrow</strong> between nodes to see gap details (technique, CVE, config weakness)</span>
           </div>
           <div class="sub-item">
             <span class="sub-bullet orange"></span>
-            <span class="sub-text">Cloud Misconfig + SSH Key leak → credential exposure</span>
+            <span class="sub-text"><strong>Default</strong> shows first edge — updates dynamically per selected connection</span>
           </div>
           <div class="sub-item">
             <span class="sub-bullet purple"></span>
-            <span class="sub-text">API Exposure + Identity Weakness → privilege escalation</span>
+            <span class="sub-text"><strong>Selected edge highlighted</strong> in indigo with ring indicator</span>
           </div>
         </div>
       </div>
@@ -581,7 +782,114 @@
       </div>
 
       <!-- Step 4 -->
-      <div class="flow-node action">
+      <div class="flow-node action" data-tip="Qualys-enriched context: OS version, open ports, services, exploitability, and business criticality for each node">
+        <span class="flow-node-icon">🖥️</span>
+        <div class="flow-node-title">Asset Metadata Enrichment</div>
+        <div class="flow-node-desc">Qualys-enriched context for every node on the path — including cross-path membership</div>
+        <div class="flow-node-tags">
+          <span class="tag slate">OS Version</span>
+          <span class="tag blue">Open Ports</span>
+          <span class="tag orange">Exploitability</span>
+          <span class="tag purple">Criticality</span>
+          <span class="tag teal">Services</span>
+        </div>
+        <div class="sub-list">
+          <div class="sub-item">
+            <span class="sub-bullet teal"></span>
+            <span class="sub-text"><strong>Also in N other paths</strong> — cross-path membership row on each card with clickable AP-XXXX path chips</span>
+          </div>
+          <div class="sub-item">
+            <span class="sub-bullet green"></span>
+            <span class="sub-text"><strong>Unique to this path</strong> — green indicator when resource appears in no other path</span>
+          </div>
+          <div class="sub-item">
+            <span class="sub-bullet blue"></span>
+            <span class="sub-text"><strong>×N paths badge</strong> in card header — click to open Resource Detail Panel slide-over</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="connector">
+        <div class="connector-line" style="min-height:8px"></div>
+        <span class="connector-arrow">▼</span>
+      </div>
+
+      <!-- Step 4b - Resource Detail Panel -->
+      <div class="flow-node screen" style="border-color:#bfdbfe; background:#eff6ff;" data-tip="Slide-over panel from the right showing full resource metadata and all attack paths that reference it — surfaces the inverse many-to-many relationship">
+        <span class="flow-node-icon">🔍</span>
+        <div class="flow-node-title">Resource Detail Panel</div>
+        <div class="flow-node-desc">Slide-over panel triggered from any resource reference across all 3 tabs</div>
+        <div class="sub-list">
+          <div class="sub-item">
+            <span class="sub-bullet blue"></span>
+            <span class="sub-text"><strong>Resource metadata</strong> — name, type, OS, ports, services, exploitability, criticality</span>
+          </div>
+          <div class="sub-item">
+            <span class="sub-bullet teal"></span>
+            <span class="sub-text"><strong>Part of N Attack Paths</strong> — lists all paths containing this resource with severity, score, status</span>
+          </div>
+          <div class="sub-item">
+            <span class="sub-bullet green"></span>
+            <span class="sub-text"><strong>Cross-path insight</strong> — "Remediating this resource reduces combined risk across all N paths"</span>
+          </div>
+          <div class="sub-item">
+            <span class="sub-bullet purple"></span>
+            <span class="sub-text"><strong>Path navigation</strong> — click any path row to switch context to that path</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="connector">
+        <div class="connector-line" style="min-height:8px"></div>
+        <span class="connector-arrow">▼</span>
+      </div>
+
+      <!-- Step 5 -->
+      <div class="flow-node action" data-tip="Risk scores dynamically adjusted by attack path topology — chokepoint assets are elevated; isolated or unreachable assets are suppressed">
+        <span class="flow-node-icon">📊</span>
+        <div class="flow-node-title">Contextual Risk Scoring</div>
+        <div class="flow-node-desc">Scores adjusted by topological position — elevated for chokepoints, suppressed for isolated nodes</div>
+        <div class="sub-list">
+          <div class="sub-item">
+            <span class="sub-bullet red"></span>
+            <span class="sub-text"><strong>API Gateway</strong> 73 → 97 (+24%) · Toxic Combination chokepoint</span>
+          </div>
+          <div class="sub-item">
+            <span class="sub-bullet orange"></span>
+            <span class="sub-text"><strong>Redis Cache</strong> 65 → 94 (+29%) · No-auth credential store</span>
+          </div>
+          <div class="sub-item">
+            <span class="sub-bullet green"></span>
+            <span class="sub-text"><strong>Dev Test Server</strong> 62 → 27 (-57%) · Isolated VLAN, no path</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="connector">
+        <div class="connector-line" style="min-height:8px"></div>
+        <span class="connector-arrow">▼</span>
+      </div>
+
+      <!-- Step 6 -->
+      <div class="flow-node action" data-tip="Nodes where 3+ critical risk factors co-exist — CVE + IAM misconfiguration + internet exposure — highest remediation priority">
+        <span class="flow-node-icon">☠️</span>
+        <div class="flow-node-title">Toxic Combinations Detected</div>
+        <div class="flow-node-desc">Nodes where ≥ 3 critical risk factors intersect — highest remediation priority</div>
+        <div class="flow-node-tags">
+          <span class="tag red">3 detected</span>
+          <span class="tag orange">CVE + IAM + Exposure</span>
+          <span class="tag purple">Kerberoast + WriteDACL</span>
+          <span class="tag teal">S3 + Redis + Credentials</span>
+        </div>
+      </div>
+
+      <div class="connector">
+        <div class="connector-line" style="min-height:8px"></div>
+        <span class="connector-arrow">▼</span>
+      </div>
+
+      <!-- Step 6 -->
+      <div class="flow-node action" data-tip="Step-by-step MITRE ATT&CK mapped chain from standard user to full domain compromise">
         <span class="flow-node-icon">📶</span>
         <div class="flow-node-title">Privilege Escalation Mapping</div>
         <div class="flow-node-desc">Step-by-step escalation chain — click each step to expand MITRE ATT&amp;CK detail</div>
@@ -610,27 +918,8 @@
         <span class="connector-arrow">▼</span>
       </div>
 
-      <!-- Step 5 -->
-      <div class="flow-node action">
-        <span class="flow-node-icon">🖥️</span>
-        <div class="flow-node-title">Asset Metadata Enrichment</div>
-        <div class="flow-node-desc">Qualys-enriched context for every node on the path</div>
-        <div class="flow-node-tags">
-          <span class="tag slate">OS Version</span>
-          <span class="tag blue">Open Ports</span>
-          <span class="tag orange">Exploitability</span>
-          <span class="tag purple">Criticality</span>
-          <span class="tag teal">Services</span>
-        </div>
-      </div>
-
-      <div class="connector">
-        <div class="connector-line" style="min-height:8px"></div>
-        <span class="connector-arrow">▼</span>
-      </div>
-
-      <!-- Step 6 -->
-      <div class="flow-node action">
+      <!-- Step 7 -->
+      <div class="flow-node action" data-tip="AD identities, group memberships, GPO exposure, and Kerberos delegation risks on this attack path">
         <span class="flow-node-icon">👥</span>
         <div class="flow-node-title">Identity &amp; Lateral Movement</div>
         <div class="flow-node-desc">AD identities on the path — group memberships, GPOs, escalation risk</div>
@@ -639,11 +928,6 @@
           <span class="tag orange">admin.jones — CRITICAL</span>
           <span class="tag blue">WriteDACL / Kerberoastable</span>
         </div>
-      </div>
-
-      <div class="connector">
-        <div class="connector-line" style="min-height:8px"></div>
-        <span class="connector-arrow">▼</span>
       </div>
 
       <!-- Decision -->
@@ -686,7 +970,7 @@
       <!-- Screen state -->
       <div class="screen-strip">
         <div class="screen-dots"><span class="screen-dot r"></span><span class="screen-dot y"></span><span class="screen-dot g"></span></div>
-        <span class="screen-url">localhost:3000/insights.html</span>
+        <span class="screen-url">Attack Path</span>
         <span class="screen-tab">01 Discover</span>
         <span class="screen-tab">02 Analyze · CID 5014</span>
         <span class="screen-tab active">03 Remediate</span>
@@ -696,14 +980,11 @@
       <div class="flow-node screen">
         <span class="flow-node-icon">📊</span>
         <div class="flow-node-title">Risk Summary Dashboard</div>
-        <div class="flow-node-desc">6 KPIs show the remediation landscape at a glance</div>
+        <div class="flow-node-desc">3-card risk summary: Toxic Combos detected · Assets with elevated score · Average ROI across all actions (hover for formula: Risk Reduction Value ÷ Remediation Cost)</div>
         <div class="flow-node-tags">
           <span class="tag red">3 Toxic Combos</span>
           <span class="tag orange">3 Score Elevated</span>
-          <span class="tag green">2 Noise Suppressed</span>
-          <span class="tag slate">18 Risk Factors</span>
-          <span class="tag red">Max Score 97</span>
-          <span class="tag blue">Actions Ready</span>
+          <span class="tag green">Avg ROI: 5.4</span>
         </div>
       </div>
 
@@ -716,23 +997,27 @@
       <div class="flow-node screen">
         <span class="flow-node-icon">🔧</span>
         <div class="flow-node-title">Prioritized Remediation Actions</div>
-        <div class="flow-node-desc">Ranked fixes for the selected path — Critical → Low — with effort &amp; ETA</div>
+        <div class="flow-node-desc">Ranked fixes for the selected path — Critical → Low — with effort, ETA &amp; cross-path blast radius</div>
         <div class="sub-list">
           <div class="sub-item">
             <span class="sub-bullet red"></span>
-            <span class="sub-text"><strong>CRITICAL</strong> — Patch CVE-2024-3094 · ETA: 1 day · Effort: Low</span>
+            <span class="sub-text"><strong>CRITICAL</strong> — Patch CVE-2024-3094 · ETA: 1 day · Effort: Low · <strong style="color:#059669">ROI: 8.2</strong></span>
           </div>
           <div class="sub-item">
             <span class="sub-bullet red"></span>
-            <span class="sub-text"><strong>CRITICAL</strong> — Enable Redis AUTH on port 6379 · ETA: 4 hrs</span>
+            <span class="sub-text"><strong>CRITICAL</strong> — Enable Redis AUTH on port 6379 · ETA: 4 hrs · <strong style="color:#059669">ROI: 7.5</strong></span>
           </div>
           <div class="sub-item">
             <span class="sub-bullet orange"></span>
-            <span class="sub-text"><strong>HIGH</strong> — Add network segmentation cache↔DB · ETA: 3 days</span>
+            <span class="sub-text"><strong>HIGH</strong> — Add network segmentation cache↔DB · ETA: 3 days · <strong style="color:#059669">ROI: 3.8</strong></span>
           </div>
           <div class="sub-item">
             <span class="sub-bullet teal"></span>
-            <span class="sub-text"><strong>MEDIUM</strong> — Remove AdministratorAccess IAM role · ETA: 2 hrs</span>
+            <span class="sub-text"><strong>MEDIUM</strong> — Remove AdministratorAccess IAM role · ETA: 2 hrs · <strong style="color:#059669">ROI: 2.1</strong></span>
+          </div>
+          <div class="sub-item">
+            <span class="sub-bullet teal"></span>
+            <span class="sub-text"><strong>🔗 Affects N paths — click to view</strong> teal link on actions targeting shared resources — opens Resource Detail Panel</span>
           </div>
         </div>
       </div>
@@ -786,31 +1071,9 @@
             <span class="sub-bullet red"></span>
             <span class="sub-text">Public S3 + Cached Creds + No Auth Redis</span>
           </div>
-        </div>
-      </div>
-
-      <div class="connector">
-        <div class="connector-line" style="min-height:8px"></div>
-        <span class="connector-arrow">▼</span>
-      </div>
-
-      <!-- Step 5 -->
-      <div class="flow-node action">
-        <span class="flow-node-icon">📉</span>
-        <div class="flow-node-title">Contextual Risk Scoring Review</div>
-        <div class="flow-node-desc">Dynamic score adjustments — topological position elevates or suppresses each asset's risk weight</div>
-        <div class="sub-list">
           <div class="sub-item">
-            <span class="sub-bullet red"></span>
-            <span class="sub-text">API Gateway: 73 → <strong>97</strong> (+24% toxic combo)</span>
-          </div>
-          <div class="sub-item">
-            <span class="sub-bullet orange"></span>
-            <span class="sub-text">Redis Cache: 65 → <strong>94</strong> (+29% choke point)</span>
-          </div>
-          <div class="sub-item">
-            <span class="sub-bullet green"></span>
-            <span class="sub-text">Dev Test Server: 62 → <strong>27</strong> (-57% isolated)</span>
+            <span class="sub-bullet teal"></span>
+            <span class="sub-text"><strong>Clickable asset chip</strong> — asset name is a link that opens Resource Detail Panel + <strong>Spans N paths</strong> indicator on shared assets</span>
           </div>
         </div>
       </div>
@@ -865,5 +1128,34 @@
   </div>
 
 </div>
+
+<style>[data-tip]{cursor:help;}</style>
+<script>
+(function(){
+  var tip=document.createElement('div');
+  tip.style.cssText='position:fixed;z-index:9999;background:#0f172a;color:#fff;border-radius:8px;padding:10px 14px;font-size:11px;line-height:1.5;max-width:300px;box-shadow:0 4px 24px rgba(0,0,0,.55);pointer-events:none;white-space:normal;display:none;font-family:Inter,system-ui,sans-serif;';
+  document.body.appendChild(tip);
+  var cur=null;
+  document.addEventListener('mouseover',function(e){
+    var el=e.target.closest('[data-tip]');
+    if(!el)return;
+    cur=el;
+    tip.textContent=el.getAttribute('data-tip');
+    tip.style.display='block';
+    move(e);
+  });
+  document.addEventListener('mousemove',function(e){if(cur)move(e);});
+  document.addEventListener('mouseout',function(e){
+    var el=e.target.closest('[data-tip]');
+    if(el&&!el.contains(e.relatedTarget)){cur=null;tip.style.display='none';}
+  });
+  function move(e){
+    var x=e.clientX,y=e.clientY,w=tip.offsetWidth,h=tip.offsetHeight;
+    var l=x+14; if(l+w>window.innerWidth-8)l=x-w-14;
+    var t=y-h-12; if(t<4)t=y+20;
+    tip.style.left=l+'px';tip.style.top=t+'px';
+  }
+})();
+</script>
 </body>
 </html>

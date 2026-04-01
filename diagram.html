@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light" />
+  <title>Attack Path — User Journey Diagram</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      background: #ffffff;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      color-scheme: light;
+    }
+
+    /* ─── Top toolbar ─────────────────────────────────────────── */
+    #toolbar {
+      background: #1e293b;
+      padding: 10px 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,.3);
+    }
+    #toolbar h1 {
+      color: #f1f5f9;
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: .3px;
+      flex: 1;
+    }
+    #toolbar span { color: #94a3b8; font-size: 13px; }
+    #exportBtn {
+      background: #E5002B;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 8px 20px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      letter-spacing: .3px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: background .15s;
+    }
+    #exportBtn:hover { background: #c0001f; }
+    #exportBtn svg { flex-shrink: 0; }
+
+    /* ─── Canvas wrapper ──────────────────────────────────────── */
+    #canvas-wrap {
+      padding: 32px 24px 48px;
+      background: #ffffff;
+      min-width: 1480px;
+    }
+
+    /* ─── The diagram ─────────────────────────────────────────── */
+    #diagram {
+      background: #ffffff;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      width: 1400px;
+      margin: 0 auto;
+    }
+
+    /* ─── Title block ─────────────────────────────────────────── */
+    .diag-title {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+    .diag-title h2 {
+      font-size: 22px;
+      font-weight: 700;
+      color: #0f172a;
+      letter-spacing: .4px;
+    }
+
+    /* ─── Entry flow bar ──────────────────────────────────────── */
+    .entry-bar {
+      background: #f8fafc;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 18px 32px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 0;
+    }
+    .entry-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: #94a3b8;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-right: 20px;
+      white-space: nowrap;
+    }
+    .entry-nodes {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      flex: 1;
+    }
+    .entry-node {
+      background: #1e293b;
+      color: #f1f5f9;
+      border-radius: 6px;
+      padding: 8px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .entry-node.start {
+      background: #0f172a;
+      border: 2px solid #E5002B;
+    }
+    .entry-node.highlight {
+      background: #1e40af;
+    }
+    .entry-arrow {
+      display: flex;
+      align-items: center;
+      padding: 0 6px;
+      color: #94a3b8;
+    }
+    .entry-arrow svg { display: block; }
+
+    /* ─── AP Flow section ─────────────────────────────────────── */
+    .ap-flow-section {
+      border: 1.5px solid #e2e8f0;
+      border-radius: 10px;
+      background: #fafbff;
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+    .ap-flow-header {
+      background: #1e293b;
+      padding: 8px 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .ap-flow-header-label {
+      font-size: 10px;
+      font-weight: 700;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .ap-flow-header-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: #e2e8f0;
+    }
+    .ap-flow-chain {
+      padding: 18px 24px 14px;
+      display: flex;
+      align-items: center;
+      gap: 0;
+      justify-content: center;
+    }
+    .ap-node {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      min-width: 160px;
+    }
+    .ap-node-box {
+      border-radius: 8px;
+      padding: 9px 14px;
+      font-size: 11px;
+      font-weight: 700;
+      text-align: center;
+      line-height: 1.35;
+      width: 150px;
+      border: 2px solid;
+    }
+    .ap-node-box.entry-point {
+      background: #fef2f2;
+      border-color: #fca5a5;
+      color: #b91c1c;
+    }
+    .ap-node-box.vuln-host {
+      background: #fff7ed;
+      border-color: #fdba74;
+      color: #c2410c;
+    }
+    .ap-node-box.identity {
+      background: #fefce8;
+      border-color: #fde047;
+      color: #854d0e;
+    }
+    .ap-node-box.lateral {
+      background: #f5f3ff;
+      border-color: #c4b5fd;
+      color: #6d28d9;
+    }
+    .ap-node-box.crown-jewel {
+      background: #1e293b;
+      border-color: #E5002B;
+      color: #fef2f2;
+    }
+    .ap-node-sub {
+      font-size: 9px;
+      color: #94a3b8;
+      text-align: center;
+      line-height: 1.3;
+    }
+    .ap-node-phase {
+      font-size: 9px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      margin-top: 2px;
+    }
+    .ap-node-phase.discover  { background: #dbeafe; color: #1d4ed8; border: 1px solid #93c5fd; }
+    .ap-node-phase.analyze   { background: #cffafe; color: #0e7490; border: 1px solid #67e8f9; }
+    .ap-node-phase.remediate { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+
+    .ap-chain-arrow {
+      display: flex;
+      align-items: center;
+      padding: 0 6px;
+      padding-bottom: 28px; /* offset to align with node box vertically */
+    }
+
+    /* Connection strip below the chain */
+    .ap-connections {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 0;
+      border-top: 1.5px solid #e2e8f0;
+    }
+    .ap-conn-cell {
+      padding: 10px 16px;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      border-right: 1.5px solid #e2e8f0;
+    }
+    .ap-conn-cell:last-child { border-right: none; }
+    .ap-conn-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      margin-top: 3px;
+    }
+    .ap-conn-dot.discover  { background: #2563eb; }
+    .ap-conn-dot.analyze   { background: #0891b2; }
+    .ap-conn-dot.remediate { background: #16a34a; }
+    .ap-conn-text {
+      font-size: 10px;
+      color: #475569;
+      line-height: 1.5;
+    }
+    .ap-conn-text strong {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      margin-bottom: 2px;
+    }
+    .ap-conn-text.discover strong  { color: #1d4ed8; }
+    .ap-conn-text.analyze strong   { color: #0e7490; }
+    .ap-conn-text.remediate strong { color: #15803d; }
+
+    /* ─── Down arrow ──────────────────────────────────────────── */
+    .entry-to-phase {
+      text-align: center;
+      margin-bottom: 8px;
+    }
+    .entry-to-phase svg { display: inline-block; }
+
+    /* ─── Swimlane grid ───────────────────────────────────────── */
+    .swimlane-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 0;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    /* ─── Lane header ─────────────────────────────────────────── */
+    .lane-header {
+      padding: 14px 20px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: .5px;
+      text-align: center;
+      border-bottom: 1.5px solid rgba(0,0,0,.1);
+    }
+    .lane-header.discover { background: #1d4ed8; color: #fff; }
+    .lane-header.analyze  { background: #0e7490; color: #fff; }
+    .lane-header.remediate{ background: #15803d; color: #fff; }
+    .lane-header small {
+      display: block;
+      font-size: 10px;
+      font-weight: 400;
+      opacity: .8;
+      margin-top: 2px;
+      letter-spacing: .8px;
+      text-transform: uppercase;
+    }
+
+    /* ─── Lane body ───────────────────────────────────────────── */
+    .lane-body {
+      padding: 20px 18px 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+      border-right: 1.5px solid #e2e8f0;
+      background: #ffffff;
+      position: relative;
+    }
+    .lane-body:last-child { border-right: none; }
+
+    /* ─── Flow nodes ──────────────────────────────────────────── */
+    .flow-node {
+      width: 220px;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 12px;
+      line-height: 1.4;
+      text-align: center;
+      font-weight: 600;
+      position: relative;
+    }
+    .fn-rect {
+      background: #fff;
+      border: 1.5px solid #94a3b8;
+      color: #1e293b;
+    }
+    .fn-screen {
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 500;
+      color: #fff;
+      padding: 8px 12px;
+    }
+    .fn-screen.discover { background: #2563eb; border: none; }
+    .fn-screen.analyze  { background: #0891b2; border: none; }
+    .fn-screen.remediate{ background: #16a34a; border: none; }
+    .fn-outcome {
+      border-radius: 24px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 8px 16px;
+    }
+    .fn-outcome.discover { background: #dbeafe; border: 1.5px solid #3b82f6; color: #1d4ed8; }
+    .fn-outcome.analyze  { background: #cffafe; border: 1.5px solid #06b6d4; color: #0e7490; }
+    .fn-outcome.remediate{ background: #dcfce7; border: 1.5px solid #22c55e; color: #15803d; }
+
+    /* decision rectangle */
+    .fn-decision {
+      background: #fef9c3;
+      border: 2px solid #ca8a04;
+      color: #713f12;
+      border-radius: 6px;
+    }
+
+    /* sub-items */
+    .sub-list {
+      width: 220px;
+      background: #f8fafc;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 8px 12px;
+      list-style: none;
+    }
+    .sub-list li {
+      font-size: 11px;
+      color: #475569;
+      padding: 3px 0;
+      padding-left: 14px;
+      position: relative;
+      line-height: 1.4;
+    }
+    .sub-list li::before {
+      content: '›';
+      position: absolute;
+      left: 0;
+      color: #94a3b8;
+      font-weight: 700;
+    }
+
+    /* vertical connector */
+    .v-arrow {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+      padding: 4px 0;
+    }
+    .v-line {
+      width: 2px;
+      height: 18px;
+      background: #94a3b8;
+    }
+    .v-head {
+      width: 0;
+      height: 0;
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-top: 7px solid #94a3b8;
+    }
+
+    /* cross-lane label */
+    .cross-label {
+      font-size: 10px;
+      color: #6366f1;
+      font-weight: 600;
+      border: 1px dashed #a5b4fc;
+      border-radius: 10px;
+      padding: 2px 8px;
+      background: #eef2ff;
+      margin: 2px 0;
+      text-align: center;
+    }
+
+    /* ─── Legend ──────────────────────────────────────────────── */
+    .legend {
+      margin-top: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      color: #475569;
+    }
+    .leg-rect { width: 32px; height: 18px; border-radius: 4px; border: 1.5px solid #94a3b8; background: #fff; }
+    .leg-screen{ width: 32px; height: 18px; border-radius: 4px; background: #2563eb; }
+    .leg-diamond{ width: 32px; height: 18px; border-radius: 4px; background: #fef9c3; border: 2px solid #ca8a04; }
+    .leg-outcome{ width: 44px; height: 18px; border-radius: 24px; background: #dbeafe; border: 1.5px solid #3b82f6; }
+
+    @media print { #toolbar { display: none; } }
+  </style>
+</head>
+<body>
+
+<!-- ═══ Toolbar ═══════════════════════════════════════════════════════════ -->
+<div id="toolbar">
+  <h1>Attack Path Insights — User Journey Diagram</h1>
+  <span>Qualys Enterprise TruRisk™ Platform · ETM Module</span>
+  <button id="exportBtn" onclick="exportJPG()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+    </svg>
+    Export as JPG
+  </button>
+</div>
+
+<!-- ═══ Canvas wrapper ════════════════════════════════════════════════════ -->
+<div id="canvas-wrap">
+<div id="diagram">
+
+  <!-- ── Title ── -->
+  <div class="diag-title">
+    <h2>Attack Path - End2End User Journey</h2>
+  </div>
+
+  <!-- ── Entry flow ── -->
+  <div class="entry-bar">
+    <div class="entry-label">Entry Flow</div>
+    <div class="entry-nodes">
+
+      <div class="entry-node start">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        ETM Login
+      </div>
+      <div class="entry-arrow"><svg width="22" height="12" viewBox="0 0 22 12"><line x1="0" y1="6" x2="16" y2="6" stroke="#94a3b8" stroke-width="1.5"/><polygon points="16,2 22,6 16,10" fill="#94a3b8"/></svg></div>
+
+      <div class="entry-node">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        ETM Left Nav
+      </div>
+      <div class="entry-arrow"><svg width="22" height="12" viewBox="0 0 22 12"><line x1="0" y1="6" x2="16" y2="6" stroke="#94a3b8" stroke-width="1.5"/><polygon points="16,2 22,6 16,10" fill="#94a3b8"/></svg></div>
+
+      <div class="entry-node highlight">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        Click "Attack Path"
+      </div>
+      <div class="entry-arrow"><svg width="22" height="12" viewBox="0 0 22 12"><line x1="0" y1="6" x2="16" y2="6" stroke="#94a3b8" stroke-width="1.5"/><polygon points="16,2 22,6 16,10" fill="#94a3b8"/></svg></div>
+
+      <div class="entry-node">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        Attack Path Screen Loads
+      </div>
+      <div class="entry-arrow"><svg width="22" height="12" viewBox="0 0 22 12"><line x1="0" y1="6" x2="16" y2="6" stroke="#94a3b8" stroke-width="1.5"/><polygon points="16,2 22,6 16,10" fill="#94a3b8"/></svg></div>
+
+      <div class="entry-node" style="background:#374151;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        User Journey Begins
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Down arrow ── -->
+  <div class="entry-to-phase">
+    <svg width="24" height="20" viewBox="0 0 24 20" fill="none">
+      <line x1="12" y1="0" x2="12" y2="13" stroke="#94a3b8" stroke-width="2"/>
+      <polygon points="6,13 18,13 12,20" fill="#94a3b8"/>
+    </svg>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- ATTACK PATH FLOW                                             -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <div class="ap-flow-section">
+
+    <div class="ap-flow-header">
+      <div class="ap-flow-header-label">Attack Path Flow</div>
+      <div class="ap-flow-header-title">Example: Internet → Exposed VM → IAM Misconfiguration → Lateral Movement → Crown Jewel</div>
+    </div>
+
+    <!-- Chain of nodes -->
+    <div class="ap-flow-chain">
+
+      <div class="ap-node">
+        <div class="ap-node-box entry-point">
+          🌐 Internet<br/>Entry Point
+        </div>
+        <div class="ap-node-sub">Public-facing endpoint<br/>TCP/443 exposed</div>
+        <div class="ap-node-phase discover">Discovered</div>
+      </div>
+
+      <div class="ap-chain-arrow">
+        <svg width="40" height="12" viewBox="0 0 40 12"><line x1="0" y1="6" x2="33" y2="6" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4,2"/><polygon points="33,2 40,6 33,10" fill="#94a3b8"/></svg>
+      </div>
+
+      <div class="ap-node">
+        <div class="ap-node-box vuln-host">
+          🖥 Exposed VM<br/>CVE-2024-1234
+        </div>
+        <div class="ap-node-sub">CVSS 9.8 · Unpatched<br/>RCE vulnerability</div>
+        <div class="ap-node-phase analyze">Analyzed</div>
+      </div>
+
+      <div class="ap-chain-arrow">
+        <svg width="40" height="12" viewBox="0 0 40 12"><line x1="0" y1="6" x2="33" y2="6" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4,2"/><polygon points="33,2 40,6 33,10" fill="#94a3b8"/></svg>
+      </div>
+
+      <div class="ap-node">
+        <div class="ap-node-box identity">
+          🔑 IAM Role<br/>Misconfigured
+        </div>
+        <div class="ap-node-sub">Over-privileged role<br/>AdministratorAccess</div>
+        <div class="ap-node-phase analyze">Analyzed</div>
+      </div>
+
+      <div class="ap-chain-arrow">
+        <svg width="40" height="12" viewBox="0 0 40 12"><line x1="0" y1="6" x2="33" y2="6" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4,2"/><polygon points="33,2 40,6 33,10" fill="#94a3b8"/></svg>
+      </div>
+
+      <div class="ap-node">
+        <div class="ap-node-box lateral">
+          ↔ Lateral Move<br/>S3 Bucket Read
+        </div>
+        <div class="ap-node-sub">Cross-account access<br/>Unencrypted bucket</div>
+        <div class="ap-node-phase remediate">Remediated</div>
+      </div>
+
+      <div class="ap-chain-arrow">
+        <svg width="40" height="12" viewBox="0 0 40 12"><line x1="0" y1="6" x2="33" y2="6" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4,2"/><polygon points="33,2 40,6 33,10" fill="#94a3b8"/></svg>
+      </div>
+
+      <div class="ap-node">
+        <div class="ap-node-box crown-jewel">
+          👑 Crown Jewel<br/>Finance DB
+        </div>
+        <div class="ap-node-sub">PII data · RDS prod<br/>Risk Score: 94</div>
+        <div class="ap-node-phase remediate">Remediated</div>
+      </div>
+
+    </div>
+
+    <!-- Connection strip → maps chain nodes to swimlane sections -->
+    <div class="ap-connections">
+
+      <div class="ap-conn-cell">
+        <div class="ap-conn-dot discover"></div>
+        <div class="ap-conn-text discover">
+          <strong>01 Discover</strong>
+          The full attack path chain — from Internet Entry Point to Crown Jewel — surfaces in the attack paths table. User views CID, severity, hop count and risk score to prioritise which path to investigate.
+        </div>
+      </div>
+
+      <div class="ap-conn-cell">
+        <div class="ap-conn-dot analyze"></div>
+        <div class="ap-conn-text analyze">
+          <strong>02 Analyze</strong>
+          User drills into the selected path to inspect asset type breakdown, shared resource warning banner, node hover metadata (with 🔗 in N paths badge), cross-path resource membership, Resource Detail Panel slide-over, privilege escalation steps, MITRE ATT&amp;CK mapping, toxic combinations, and identity / lateral movement chain.
+        </div>
+      </div>
+
+      <div class="ap-conn-cell">
+        <div class="ap-conn-dot remediate"></div>
+        <div class="ap-conn-text remediate">
+          <strong>03 Remediate</strong>
+          Prioritized fixes with ROI scoring — patch CVE-2024-1234, restrict IAM role, encrypt S3 bucket. Shared-resource actions show 🔗 Affects N paths cross-path blast radius. Each action shows ETA, Effort, and ROI. User marks actions Fixed, raises tickets, or suppresses with justification.
+        </div>
+      </div>
+
+    </div>
+  </div><!-- /ap-flow-section -->
+
+  <!-- ── Down arrow into swimlanes ── -->
+  <div class="entry-to-phase">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+      <line x1="12" y1="0" x2="12" y2="16" stroke="#94a3b8" stroke-width="2"/>
+      <polygon points="6,16 18,16 12,24" fill="#94a3b8"/>
+    </svg>
+  </div>
+
+  <!-- ── Swimlane grid ── -->
+  <div class="swimlane-grid">
+
+    <div class="lane-header discover">01 Discover<small>Attack Path Discovery</small></div>
+    <div class="lane-header analyze">02 Analyze<small>Security Gap Chaining · Asset Metadata Enrichment · Contextual Risk Scoring · Toxic Combinations · Privilege Escalation · Identity Mapping · Resource Detail Panel · Cross-Path Resource Membership</small></div>
+    <div class="lane-header remediate">03 Remediate<small>ROI Scoring · Prioritized Actions</small></div>
+
+    <!-- ══ Discover body ══════════════════════════════════════════ -->
+    <div class="lane-body">
+
+      <div class="v-arrow"><div class="v-line"></div><div class="v-head"></div></div>
+      <div class="flow-node fn-screen discover">Dashboard Loads — 01 Discover Tab</div>
+      <div class="v-arrow"><div class="v-line"></div><div class="v-head"></div></div>
+      <div class="flow-node fn-rect">View KPI Summary Cards</div>
+      <ul class="sub-list" style="margin-top:6px;">
+        <li>Total Attack Paths</li>
+        <li>Critical Paths count</li>
+        <li>Avg Risk Score</li>
+        <li>Crown Jewels exposed</li>
+        <li>Entry Points count</li>
+      </ul>
+      <div class="v-arrow" style="padding-top:8px;"><div class="v-line"></div><div class="v-head"></div></div>
+      <div class="flow-node fn-rect" data-tip="Entity-aware search across all path fields: asset names, CVE IDs, MITRE techniques, flow node labels, edge techniques, security gaps, and remediation actions">Apply Filters &amp; Entity Search</div>
+      <ul class="sub-list" style="margin-top:6px;">
+        <li>Severity / Entry Point / Time Range filters</li>
+        <li>Search by asset name (e.g. redis, api-gateway)</li>
+        <li>Search by CVE, MITRE technique, node label</li>
+        <li>Match chip shown in row for non-title matches</li>
+        <li>Empty state with guidance when no results</li>
+      </ul>
+      <div class="v-arrow" style="padding-top:8px;"><div class="v-line"></div><div class="v-head"></div></div>
+      <div class="flow-node fn-rect">Browse Attack Paths Table</div>
+      <ul class="sub-list" style="margin-top:6px;">
+        <li>CID · Chain · Severity</li>
+        <li>Hops / Gaps count</li>
+        <li>Risk Score (sortable)</li>
+        <li>Resources — count + <span style="color:#ea580c;font-weight:700;">N shared</span> orange badge / <span style="color:#16a34a;font-weight:700;">unique</span> green badge</li>
+      </ul>
+      <div class="v-arrow" style="padding-top:8px;"><div class="v-line"></div><div class="v-head"></div></div>
+      <div class="flow-node fn-decision">Investigate a Path?</div>
+      <div class="v-arrow"><div class="v-line" style="height:10px;"></div><div class="v-head"></div></div>
+      <div class="cross-label">→ Click "Analyze" → Tab 02</div>
+      <div class="v-arrow"><div class="v-line" style="height:10px;"></div><div class="v-head"></div></div>
+      <div class="flow-node fn-outcome discover">CID Context Passed to Analyze</div>
+
+    </div>
+
+    <!-- ══ Analyze body ═══════════════════════════════════════════ -->
+    <div class="lane-body">
+
+      <div class="v-arrow"><div class="v-line"></div><div class="v-head"></div></div>
+      <div class="flow-node fn-screen analyze">02 Analyze Tab — Path Context Loaded</div>
+      <div class="v-arrow"><div class="v-line"></div><div class="v-head"></div></div>
+      <div class="flow-node fn-rect">View Path Context Header</div>
+      <ul class="sub-list" style="margin-top:6px;">
+        <li>CID · Severity badge</li>
+        <li>Status · Risk Score</li>
+        <li>Back to Discover nav</li>
+      </ul>
+      <div class="v-arrow" style="padding-top:8px;"><div class="v-line"></div><div class="v-head"></div></div>
+      <div class="flow-node fn-rect">Asset Type Breakdown &amp; Attack Flow</div>
+      <ul class="sub-list" style="margin-top:6px;">
+        <li>Asset type count across all hops</li>
+        <li>Click edges to inspect security gaps</li>
+        <li>Entry → Crown Jewel hop chain</li>
+        <li>MITRE ATT&amp;CK tags per hop</li>
+      </ul>
+      <div class="v-arrow" style="padding-top:8px;"><div class="v-line"></div><div class="v-head"></div></div>
+      <div class="flow-node fn-rect" style="background:#fff7ed;border-color:#fb923c;color:#9a3412;" data-tip="Orange warning banner appears when the selected path shares one or more resources with other attack paths — flags cross-path blast radius before deep-dive">⚠️ Shared Resources Warning Banner</div>
+      <ul class="sub-list" style="margin-top:6px;">
+        <li>Shown when ≥1 resource is shared across paths</li>
+        <li>Lists shared resource names + how many paths each appears in</li>
+        <li>Prompts user to consider cross-path blast radius</li>
+      </ul>
+      <div class="v-arrow" style="padding-top:8px;"><div class="v-line"></div><div class="v-head"></div></div>
+      <div class="flow-node fn-rect" data-tip="Click any edge in the attack path graph to inspect the specific security gap between two nodes">Security Gap Chaining (click edges to inspect)</div>
+      <ul class="sub-list" style="margin-top:6px;">
+        <li>Click edge arrow to see gap details</li>
+        <li>Technique, CVE, config weakness per edge</li>
+        <li>Selected edge highlighted in indigo</li>
+      </ul>
+      <div class="v-arrow" style="padding-top:8px;"><div class="v-line"></div><div class="v-head"></div></div>
+      <div class="flow-node fn-rect" data-tip="Qualys-enriched context: OS version, open ports, services, exploitability, and business criticality for each node">Asset Metadata Enrichment</div>
+      <ul class="sub-list" style="margin-top:6px;">
+        <li>OS version, open ports, services</li>
+        <li>Exploitability &amp; criticality scores</li>
+        <li>🔗 <span style="color:#0e7490;font-weight:600;">In N paths</span> teal badge on shared flow nodes</li>
+        <li>Cross-path membership — "Also in N other paths" per asset card</li>
+      </ul>
+      <div class="v-arrow" style="padding-top:8px;"><div class="v-line"></div><div class="v-head"></div></div>
+      <div class="flow-node fn-rect" style="background:#ecfeff;border-color:#06b6d4;color:#0e7490;" data-tip="Right slide-over panel that opens when any resource is clicked — shows full metadata plus all attack paths the resource belongs to, enabling cross-path navigation">🔍 Resource Detail Panel</div>
+      <ul class="sub-list" style="margin-top:6px;">
+        <li>Triggered by clicking any resource/asset reference</li>
+        <li>Shows OS, ports, severity, exploitability, criticality</li>
+        <li>Lists all attack paths containing this resource</li>
+        <li>Cross-path insight tip when resource is shared</li>
+        <li>× close button returns to current path context</li>
+      </ul>
+      <div class="v-arrow" style="padding-top:8px;"><div class="v-line"></div><div class="v-head"></div></div>
+      <div class="flow-node fn-rect" data-tip="Risk scores dynamically adjusted by attack path topology — chokepoints elevated, isolated assets suppressed regardless of CVSS">Contextual Risk Scoring</div>
+      <ul class="sub-list" style="margin-top:6px;">
+        <li>API Gateway 73 → 97 (+24%) · toxic combo</li>
+        <li>Dev Test Server 62 → 27 (-57%) · isolated</li>
+      </ul>
+      <div class="v-arrow" style="padding-top:8px;"><div class="v-line"></div><div class="v-head"></div></div>
+      <div class="flow-node fn-rect" data-tip="Nodes where 3+ critical risk factors co-exist — CVE + IAM misconfiguration + internet exposure — highest remediation priority">Toxic Combinations</div>
+      <ul class="sub-list" style="margin-top:6px;">
+        <li>3 auto-detected toxic nodes</li>
+        <li>CVE + IAM + Exposure intersections</li>
+      </ul>
+      <div class="v-arrow" style="padding-top:8px;"><div class="v-line"></div><div class="v-head"></div></div>
+      <div class="flow-node fn-rect" data-tip="Step-by-step MITRE ATT&CK mapped chain from standard user to full domain compromise">Privilege Escalation Mapping</div>
+      <ul class="sub-list" style="margin-top:6px;">
+        <li>Step-by-step escalation</li>
+        <li>MITRE ATT&amp;CK mapped per step</li>
+      </ul>
+      <div class="v-arrow" style="padding-top:8px;"><div class="v-line"></div><div class="v-head"></div></div>
+      <div class="flow-node fn-rect" data-tip="AD identities, group memberships, GPO exposure, and Kerberos delegation risks on this attack path">Identity &amp; Lateral Movement</div>
+      <ul class="sub-list" style="margin-top:6px;">
+        <li>AD groups &amp; GPO exposure</li>
+        <li>Escalation risk per identity</li>
+      </ul>
+      <div class="v-arrow" style="padding-top:8px;"><div class="v-line"></div><div class="v-head"></div></div>
+      <div class="flow-node fn-decision" style="background:#fce7f3; border-color:#be185d; color:#831843;">Ready to Remediate?</div>
+      <div class="v-arrow"><div class="v-line" style="height:10px;"></div><div class="v-head"></div></div>
+      <div class="cross-label">→ Click "Remediate" → Tab 03</div>
+      <div class="v-arrow"><div class="v-line" style="height:10px;"></div><div class="v-head"></div></div>
+      <div class="flow-node fn-outcome analyze">Path Risk Understood · Actions Queued</div>
+
+    </div>
+
+    <!-- ══ Remediate body ═════════════════════════════════════════ -->
+    <div class="lane-body">
+
+      <div class="v-arrow"><div class="v-line"></div><div class="v-head"></div></div>
+      <div class="flow-node fn-screen remediate">03 Remediate Tab — Actions Loaded</div>
+      <div class="v-arrow"><div class="v-line"></div><div class="v-head"></div></div>
+      <div class="flow-node fn-rect">Review Risk Summary</div>
+      <ul class="sub-list" style="margin-top:6px;">
+        <li>Toxic combos count</li>
+        <li>Score elevated count</li>
+        <li>Avg ROI across all actions</li>
+      </ul>
+      <div class="v-arrow" style="padding-top:8px;"><div class="v-line"></div><div class="v-head"></div></div>
+      <div class="flow-node fn-rect" data-tip="ROI displayed as numeric multiplier — hover in app for full calculation formula (Risk Reduction Value ÷ Remediation Cost)">Prioritized Action List with ROI</div>
+      <ul class="sub-list" style="margin-top:6px;">
+        <li>Critical → High → Medium → Low</li>
+        <li>ETA · Effort · ROI per action</li>
+        <li>Toxic combination auto-flag</li>
+        <li>🔗 <span style="color:#0e7490;font-weight:600;">Affects N paths</span> link on shared-resource actions — click to open Resource Detail Panel</li>
+        <li>ROI displayed as numeric multiplier — hover in app for full calculation formula (Risk Reduction Value ÷ Remediation Cost)</li>
+      </ul>
+      <div class="v-arrow" style="padding-top:8px;"><div class="v-line"></div><div class="v-head"></div></div>
+      <div class="flow-node fn-decision" style="background:#f0fdf4; border-color:#16a34a; color:#15803d;">Choose Action</div>
+      <div class="v-arrow"><div class="v-line" style="height:10px;"></div><div class="v-head"></div></div>
+      <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; width:220px; margin-bottom:6px;">
+        <div style="background:#dcfce7;border:1.5px solid #16a34a;border-radius:6px;padding:5px 4px;font-size:10px;font-weight:700;color:#15803d;text-align:center;">Mark Fixed</div>
+        <div style="background:#dbeafe;border:1.5px solid #3b82f6;border-radius:6px;padding:5px 4px;font-size:10px;font-weight:700;color:#1d4ed8;text-align:center;">Create Ticket</div>
+        <div style="background:#fef9c3;border:1.5px solid #ca8a04;border-radius:6px;padding:5px 4px;font-size:10px;font-weight:700;color:#713f12;text-align:center;">Suppress</div>
+      </div>
+      <div class="v-arrow" style="padding-top:2px;"><div class="v-line"></div><div class="v-head"></div></div>
+      <div class="flow-node fn-decision">All Actions Addressed?</div>
+      <div class="v-arrow"><div class="v-line" style="height:10px;"></div><div class="v-head"></div></div>
+      <div class="cross-label" style="background:#fff7ed;border-color:#fb923c;color:#c2410c;">No → Loop back to Action List</div>
+      <div class="v-arrow"><div class="v-line" style="height:10px;"></div><div class="v-head"></div></div>
+      <div class="flow-node fn-outcome remediate">✓ Risk Score Reduced · Path Closed</div>
+
+    </div>
+  </div><!-- /swimlane-grid -->
+
+  <!-- ── Legend ── -->
+  <div class="legend">
+    <div class="legend-item"><div class="leg-rect"></div>Process / Action</div>
+    <div class="legend-item"><div class="leg-screen"></div>Screen State</div>
+    <div class="legend-item"><div class="leg-diamond"></div>Decision Point</div>
+    <div class="legend-item"><div class="leg-outcome"></div>Outcome / Terminal</div>
+    <div class="legend-item">
+      <svg width="30" height="12" viewBox="0 0 30 12"><line x1="0" y1="6" x2="24" y2="6" stroke="#94a3b8" stroke-width="1.5"/><polygon points="24,2 30,6 24,10" fill="#94a3b8"/></svg>
+      Flow Direction
+    </div>
+    <div class="legend-item">
+      <div style="background:#eef2ff;border:1px dashed #a5b4fc;border-radius:10px;padding:2px 8px;font-size:10px;color:#6366f1;font-weight:600;">Cross-lane</div>
+      Tab Transition
+    </div>
+    <div class="legend-item">
+      <svg width="30" height="12" viewBox="0 0 30 12"><line x1="0" y1="6" x2="24" y2="6" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4,2"/><polygon points="24,2 30,6 24,10" fill="#94a3b8"/></svg>
+      Attack Path Hop
+    </div>
+  </div>
+
+</div><!-- /#diagram -->
+</div><!-- /#canvas-wrap -->
+
+<script>
+async function exportJPG() {
+  const btn = document.getElementById('exportBtn');
+  const toolbar = document.getElementById('toolbar');
+  btn.textContent = 'Exporting…';
+  btn.disabled = true;
+  toolbar.style.display = 'none';
+  try {
+    const diagram = document.getElementById('canvas-wrap');
+    const canvas = await html2canvas(diagram, {
+      backgroundColor: '#ffffff',
+      scale: 2,
+      useCORS: true,
+      logging: false,
+      scrollX: 0,
+      scrollY: 0,
+      windowWidth: diagram.scrollWidth + 48,
+      windowHeight: diagram.scrollHeight + 48,
+    });
+    const link = document.createElement('a');
+    link.download = 'attack-path-workflow.jpg';
+    link.href = canvas.toDataURL('image/jpeg', 0.95);
+    link.click();
+  } catch (err) {
+    alert('Export failed: ' + err.message);
+  } finally {
+    toolbar.style.display = '';
+    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Export as JPG`;
+    btn.disabled = false;
+  }
+}
+</script>
+
+<style>[data-tip]{cursor:help;}</style>
+<script>
+(function(){
+  var tip=document.createElement('div');
+  tip.style.cssText='position:fixed;z-index:9999;background:#0f172a;color:#fff;border-radius:8px;padding:10px 14px;font-size:11px;line-height:1.5;max-width:300px;box-shadow:0 4px 24px rgba(0,0,0,.55);pointer-events:none;white-space:normal;display:none;font-family:Segoe UI,Arial,sans-serif;';
+  document.body.appendChild(tip);
+  var cur=null;
+  document.addEventListener('mouseover',function(e){
+    var el=e.target.closest('[data-tip]');
+    if(!el)return;
+    cur=el;
+    tip.textContent=el.getAttribute('data-tip');
+    tip.style.display='block';
+    move(e);
+  });
+  document.addEventListener('mousemove',function(e){if(cur)move(e);});
+  document.addEventListener('mouseout',function(e){
+    var el=e.target.closest('[data-tip]');
+    if(el&&!el.contains(e.relatedTarget)){cur=null;tip.style.display='none';}
+  });
+  function move(e){
+    var x=e.clientX,y=e.clientY,w=tip.offsetWidth,h=tip.offsetHeight;
+    var l=x+14; if(l+w>window.innerWidth-8)l=x-w-14;
+    var t=y-h-12; if(t<4)t=y+20;
+    tip.style.left=l+'px';tip.style.top=t+'px';
+  }
+})();
+</script>
+</body>
+</html>

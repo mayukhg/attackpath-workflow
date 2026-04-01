@@ -1,0 +1,679 @@
+================================================================================
+ATTACK PATH INSIGHTS — UX FIGMA WALKTHROUGH SCRIPT
+Qualys Enterprise TruRisk™ Platform  |  ETM Module
+================================================================================
+Audience : UX / Design Team — Figma Frame Production
+Purpose  : Frame-by-frame screen spec for Figma file construction
+Note     : Each [FRAME] = one dedicated Figma artboard
+Reference: http://localhost:3000/diagram.html (source-of-truth flow)
+================================================================================
+
+HOW TO USE THIS DOCUMENT
+--------------------------------------------------------------------------------
+Each [FRAME] heading maps to a dedicated Figma artboard.
+
+  Screen state    — what is rendered and visible on screen
+  Components      — every UI element that must appear in the frame
+  Interactions    — hover, click, and transition behaviours to annotate
+  Design notes    — colour tokens, spacing, edge cases
+  Figma annotation — the label / note to place on the artboard frame
+
+
+================================================================================
+ENTRY FLOW FRAMES
+================================================================================
+
+[FRAME 01] — ETM Platform Login
+--------------------------------------------------------------------------------
+Screen state: Qualys ETM login page, pre-authentication
+
+Components:
+  - Qualys logo (top-left)
+  - Email + Password input fields
+  - "Sign In" primary CTA button
+  - SSO option link
+  - Platform branding: "Enterprise TruRisk™ Platform"
+
+Design notes:
+  - Background: #0f172a (dark slate)
+  - CTA button: Qualys red #E5002B
+  - Standard login — no Attack Path-specific elements visible yet
+
+Figma annotation: "Entry Point — User authenticates into ETM"
+
+
+[FRAME 02] — ETM Dashboard with Left Navigation
+--------------------------------------------------------------------------------
+Screen state: Post-login ETM dashboard; left nav visible; "Attack Path" highlighted
+
+Components:
+  - Left sidebar navigation (collapsed icon + label style)
+  - Active nav item: "Attack Path" — highlighted with #E5002B left border or tint
+  - Main content area: existing ETM dashboard widgets (greyed out / placeholder)
+  - Breadcrumb: ETM > Attack Path Insights
+
+Interactions:
+  - Hover on "Attack Path" nav item → show active state (highlight)
+  - Click → triggers Frame 03
+
+Design notes:
+  - Left nav width: ~240px (expanded), ~60px (collapsed)
+  - Use existing ETM nav component pattern
+
+Figma annotation: "User clicks 'Attack Path' from ETM Left Nav"
+
+
+[FRAME 03] — Attack Path Insights — Initial Load
+--------------------------------------------------------------------------------
+Screen state: Module loads; defaults to 01 Discover tab active
+
+Components:
+  - Module header: "Attack Path Insights" title + "ETM Module" tag
+  - Tab bar: [01 Discover] [02 Analyze] [03 Remediate] — Discover tab active
+  - KPI Summary Cards row (5 cards)
+  - Attack Paths table (below cards) — populated with rows
+  - Filter bar above table
+
+Design notes:
+  - Tab active state: #1d4ed8 (blue) Discover | #0e7490 (teal) Analyze | #15803d (green) Remediate
+  - Module container: white bg, border-radius 12px, subtle box-shadow
+
+Figma annotation: "Screen loads — 01 Discover tab is default active state"
+
+
+================================================================================
+PHASE 01 — DISCOVER FRAMES
+================================================================================
+
+[FRAME 04] — KPI Summary Cards
+--------------------------------------------------------------------------------
+Screen state: Five KPI cards fully rendered across top of Discover tab
+
+Components (5 cards, left to right):
+  Card 1 | Total Attack Paths  | Value: 47   | Icon: Shield     | Accent: #1d4ed8 blue
+  Card 2 | Critical Paths      | Value: 12   | Icon: Alert tri  | Accent: #E5002B red
+  Card 3 | Avg Risk Score      | Value: 76.4 | Icon: Gauge      | Accent: #ea580c orange
+  Card 4 | Crown Jewels Exposed| Value: 8    | Icon: Crown      | Accent: #b91c1c dark red
+  Card 5 | Entry Points        | Value: 23   | Icon: Globe      | Accent: #7c3aed purple
+
+Card anatomy:
+  - Size: ~200px wide, padding 20px 24px, border-radius 10px, border 1.5px solid #e2e8f0
+  - Top: label text 11px, #64748b, uppercase
+  - Middle: large value 32px, bold, colour-accented
+  - Bottom: icon + delta/trend text (e.g. "+3 since last week")
+
+Interactions:
+  - Hover → subtle box-shadow elevation increase
+  - No click behaviour in this version
+
+Figma annotation: "KPI Summary Row — 5 metric cards, top of Discover tab"
+
+
+[FRAME 05] — Filter Bar & Entity Search
+--------------------------------------------------------------------------------
+Screen state: Filter bar rendered, no active filters, search field empty
+
+Components:
+  - Search input: placeholder "Search by asset, CVE, technique, node..."
+      Left icon: magnifying glass
+      Right: clear x button (hidden when empty)
+  - Filter pills (horizontal row):
+      Severity   → All / Critical / High / Medium / Low
+      Entry Point → All / Internet / Internal / Cloud
+      Time Range  → Last 7d / 30d / 90d / Custom
+  - Active filter chip example: "Severity: Critical x" (blue pill, dismissible)
+  - Results count: "Showing 47 attack paths"
+
+Interactions:
+  - Type in search → table filters in real time; rows show match chip (see Frame 07)
+  - Click dropdown → opens select menu
+  - Click x on filter chip → removes filter, table re-renders
+  - Empty state → show empty state (see Frame 08)
+
+Design notes:
+  - Search field: height 40px, border-radius 8px, border 1.5px solid #cbd5e1
+  - Focus state: border-color #3b82f6, box-shadow 0 0 0 3px rgba(59,130,246,0.15)
+  - Filter pills: height 34px, border-radius 6px
+
+Figma annotation: "Filter Bar — entity-aware search + severity/entry-point/time filters"
+
+
+[FRAME 06] — Attack Paths Table — Default State
+--------------------------------------------------------------------------------
+Screen state: Full table, all 47 paths, no filters, no row selected
+
+Table columns:
+  CID          | 100px  | AP-5014 (monospace)                          | Sortable
+  Chain        | 260px  | Internet → VM → IAM → S3 → Finance DB        |
+  Severity     | 90px   | CRITICAL / HIGH / MEDIUM / LOW badge          | Colour-coded
+  Hops         | 60px   | 5 (numeric)                                   | Sortable
+  Gaps         | 60px   | 4 (numeric)                                   |
+  Risk Score   | 90px   | 94 + coloured bar                             | Sort desc default
+  Resources    | 120px  | "6 resources" + badge                         | NEW COLUMN
+  Action       | 80px   | "Analyze →" button                            |
+
+Resources column badge variants:
+  Shared  → orange badge "3 shared"  bg #fff7ed  text #ea580c  border #fb923c
+  Unique  → green badge  "unique"    bg #f0fdf4  text #16a34a  border #22c55e
+  Mixed   → count label + orange badge if any shared
+
+Severity badge colours:
+  CRITICAL: bg #fef2f2  text #b91c1c  border #fca5a5
+  HIGH:     bg #fff7ed  text #c2410c  border #fdba74
+  MEDIUM:   bg #fefce8  text #854d0e  border #fde047
+  LOW:      bg #f0f9ff  text #0369a1  border #7dd3fc
+
+Row states:
+  Default:  white background
+  Hover:    #f8fafc bg, Analyze button brightens
+  Selected: #eff6ff bg, left border 3px solid #2563eb
+
+Design notes:
+  - Table header: bg #f1f5f9, font 11px bold #475569, uppercase
+  - Row height: 56px
+  - Font: Inter 13px body
+  - Risk Score: "[Score] [████░░░░░]" inline bar, gradient red→amber→green
+
+Figma annotation: "Attack Paths Table — default state, all paths, Resources column visible"
+
+
+[FRAME 07] — Table with Entity Search Active
+--------------------------------------------------------------------------------
+Screen state: User typed "redis"; 3 rows match; other rows hidden
+
+Delta from Frame 06:
+  - Search field: shows "redis", clear x visible
+  - Results count: "Showing 3 of 47 attack paths"
+  - Matching rows: match chip below chain — e.g. "Match: Flow node 'Redis Cache'"
+      Chip: bg #fef9c3  text #713f12  border #fde047  font-size 10px
+  - Non-matching rows: fully hidden (not greyed)
+
+Figma annotation: "Search active — 'redis' — 3 matching rows with match chips"
+
+
+[FRAME 08] — Table Empty State
+--------------------------------------------------------------------------------
+Screen state: Filters applied with no results
+
+Components:
+  - Empty state container (centred in table body)
+  - Illustration: magnifying glass with empty circle
+  - Heading: "No attack paths match your filters"
+  - Subtext: "Try adjusting the severity filter or clearing your search term."
+  - CTA: "Clear all filters" (text link or ghost button)
+
+Figma annotation: "Table empty state — no results"
+
+
+[FRAME 09] — Row Hover + Investigate Decision
+--------------------------------------------------------------------------------
+Screen state: User hovers on a Critical path row; Analyze button highlighted
+
+Delta from Frame 06:
+  - Row hover: bg #eff6ff, left border 3px solid #2563eb
+  - Analyze → button: bg #2563eb, color white, border-radius 6px, padding 6px 14px
+  - Tooltip (optional): "Drill into this path in Analyze tab"
+
+Interaction: Click → transitions to Frame 10 (Analyze tab loads)
+
+Figma annotation: "Row hover state — Analyze CTA visible — decision: investigate this path"
+
+
+================================================================================
+PHASE 02 — ANALYZE FRAMES
+================================================================================
+
+[FRAME 10] — Analyze Tab — Initial Load
+--------------------------------------------------------------------------------
+Screen state: Tab switches to 02 Analyze; path AP-5014 context loaded at top
+
+Components:
+  - Tab bar: Analyze tab active (teal underline)
+  - Path Context Header banner (full width):
+      Left:  AP-5014 (monospace, large, #0e7490)
+             CRITICAL severity badge (red pill)
+             Status badge: Active (amber) or In Review (blue)
+             Risk Score: 94 (large, red)
+      Right: "← Back to Discover" text button
+  - Below: main Analyze content area (Frames 11-19 stacked on scroll)
+
+Design notes:
+  - Header banner: bg #f0f9ff, border-bottom 1.5px solid #bae6fd, padding 16px 24px
+  - Back link: color #64748b, hover #1d4ed8
+
+Figma annotation: "02 Analyze tab — AP-5014 context loaded in header"
+
+
+[FRAME 11] — Asset Type Breakdown & Attack Flow Graph
+--------------------------------------------------------------------------------
+Screen state: Visual flow graph; 5 nodes connected by dashed arrows
+
+Node types and styles:
+  Entry Point    | bg #fef2f2  border #fca5a5  text #b91c1c  | Internet Entry
+  Vulnerable Host| bg #fff7ed  border #fdba74  text #c2410c  | Exposed VM
+  Identity / IAM | bg #fefce8  border #fde047  text #854d0e  | IAM Role
+  Lateral Move   | bg #f5f3ff  border #c4b5fd  text #6d28d9  | S3 Bucket
+  Crown Jewel    | bg #1e293b  border #E5002B  text #fef2f2  | Finance DB
+
+Node anatomy:
+  - Box: 150px wide, padding 9px 14px, border-radius 8px, border 2px solid
+  - Sub-label: font-size 9px, color #94a3b8 (e.g. "CVSS 9.8 · Unpatched")
+  - Phase badge: Discovered (blue) / Analyzed (teal) / Remediated (green)
+
+Edges:
+  Default:  stroke #94a3b8, stroke-dasharray 4,2
+  Hover:    stroke #6366f1 (indigo), thickness 2.5px
+  Selected: #6366f1, solid line, edge label appears (see Frame 12)
+
+MITRE ATT&CK tags:
+  - Small teal pill near each edge: e.g. "T1190 Exploit Public App"
+  - bg #ecfeff  color #0e7490  font-size 9px  border 1px solid #67e8f9
+
+Asset type count strip (above graph):
+  - "Hosts: 2 · IAM Roles: 1 · Storage: 1 · Databases: 1"
+  - Each type: icon + count, font-size 12px
+
+Interactions:
+  - Click edge → Frame 12 (Security Gap detail)
+  - Click node → Frame 15 (Resource Detail Panel)
+
+Figma annotation: "Attack Flow Graph — 5-node chain, MITRE tags on edges, click edge for gap detail"
+
+
+[FRAME 12] — Security Gap Chaining — Edge Selected
+--------------------------------------------------------------------------------
+Screen state: Edge between "Exposed VM" and "IAM Role" selected
+
+Delta from Frame 11:
+  - Selected edge: solid indigo #6366f1, 2.5px
+  - Security Gap Detail panel:
+      Header:          "Security Gap — VM → IAM Role"
+      Technique:       "T1078 Valid Accounts"
+      CVE:             "CVE-2024-1234" (clickable link)
+      Config weakness: "Over-privileged IAM role with AdministratorAccess"
+      Risk contrib:    "+18 pts to path score"
+      Dismiss x:       top-right
+
+Design notes:
+  - Gap panel: bg #eef2ff, border 1.5px solid #a5b4fc, border-radius 8px, padding 14px 16px
+  - CVE link: color #2563eb, underline on hover
+
+Figma annotation: "Edge selected — Security Gap detail panel shown for VM → IAM step"
+
+
+[FRAME 13] — Shared Resources Warning Banner
+--------------------------------------------------------------------------------
+Screen state: Orange warning banner below Path Context Header, above flow graph
+
+Components:
+  - Banner: full-width, bg #fff7ed, border 1.5px solid #fb923c, border-radius 8px, padding 12px 16px
+  - Left icon: warning triangle, color #ea580c
+  - Heading (bold): "4 resources on this path are shared with 2 other attack paths"
+  - Shared resource chips (inline horizontal):
+      "GraphQL API  — in 2 paths"
+      "Redis Cache  — in 2 paths"
+      "Auth Service — in 2 paths"
+      "Postgres PII DB — in 2 paths"
+      Each chip: bg #fef2f2  border 1px solid #fca5a5  color #b91c1c
+                 border-radius 20px  padding 2px 10px  font-size 11px
+  - Sub-text: "Remediating shared resources reduces risk across multiple paths simultaneously."
+  - Dismiss x: top-right (optional)
+
+Design notes:
+  - Banner renders ONLY when sharedResourceIds.length > 0 (conditional)
+  - Position: above flow graph, below path header — prominent placement
+
+Figma annotation: "Shared Resources Warning Banner — orange, conditional, 4 shared resources with path counts"
+
+
+[FRAME 14] — Asset Metadata Enrichment — Node Cards
+--------------------------------------------------------------------------------
+Screen state: 5 asset cards (one per node), below flow graph, scrollable grid
+
+Card anatomy:
+  - Size: ~240px wide, padding 14px 16px, border-radius 8px, border 1.5px solid #e2e8f0
+  - Header row:
+      Node type icon (coloured per type)
+      Asset name (bold 13px)
+      "In N paths" teal badge (if shared):
+          bg #ecfeff  color #0e7490  border 1px solid #06b6d4
+          border-radius 20px  padding 2px 8px  font-size 10px
+          text: "🔗 In 3 paths"
+  - Metadata rows:
+      OS:             "Ubuntu 22.04 LTS"
+      Open ports:     "80, 443, 8080"
+      Services:       "nginx, node, redis"
+      Exploitability: score bar + numeric
+      Criticality:    HIGH badge
+  - Cross-path membership row (if shared):
+      "Also in:" label
+      Path chips: "AP-5028" "AP-5024" — clickable teal pills
+      OR: "✓ Unique to this path" (green, if not shared)
+  - Footer: "View full details →" link → opens Frame 15
+
+Interactions:
+  - Click "View full details →" or asset name → Frame 15 (Resource Detail Panel)
+  - Click path chip (e.g. AP-5028) → navigate to that path in Analyze
+
+Design notes:
+  - "In N paths" badge: only shown if resource belongsToMultiplePaths
+  - Cross-path chips: bg #ecfeff  color #0e7490  font-size 10px  border-radius 20px
+  - Unique indicator: color #16a34a  font-size 11px
+
+Figma annotation: "Asset Metadata Cards — per-node enrichment, In N paths badge, cross-path membership"
+
+
+[FRAME 15] — Resource Detail Panel (Slide-Over)
+--------------------------------------------------------------------------------
+Screen state: Right-side slide-over open, showing "Redis Cache" resource detail
+
+Panel anatomy:
+  Container: width 380px, height 100vh, white bg, box-shadow -4px 0 24px rgba(0,0,0,0.12)
+
+  HEADER:
+    Icon + resource name: "Redis Cache" (large, bold)
+    Type badge: CACHE or DATABASE etc.
+    Severity badge: HIGH (coloured pill)
+    x close button (top-right)
+
+  METADATA SECTION:
+    OS:             "Ubuntu 22.04 LTS"
+    Open ports:     "6379, 6380"
+    Services:       "redis-server"
+    Exploitability: score + bar
+    Criticality:    HIGH
+
+  DIVIDER
+
+  "PART OF N ATTACK PATHS" SECTION:
+    Heading: "Part of 2 Attack Paths" (bold, color #0e7490)
+    Each path row:
+      Path ID: AP-5014 (monospace, color #0e7490)
+      Chain (truncated): "Internet → VM → ... → Finance DB"
+      Severity badge
+      "View path →" link (visible on hover)
+    Row style: padding 10px 0, border-bottom 1px solid #f1f5f9
+
+  CROSS-PATH INSIGHT TIP (if shared in >1 path):
+    Teal info box: bg #ecfeff  border 1.5px solid #06b6d4  border-radius 6px  padding 10px 12px
+    Text: "💡 Remediating this resource will reduce risk across all 2 paths above."
+
+Interactions:
+  - Click x → panel slides out; returns to current path context
+  - Click "View path →" → navigate to that path in Analyze
+
+Animation spec:
+  - Slide in from right: translateX(100%) → translateX(0), transition 300ms ease
+  - Overlay behind panel: rgba(0,0,0,0.25), click overlay = close
+
+Design notes:
+  - Panel overlays content (does not push/displace main layout)
+  - Focus trap within panel when open (accessibility requirement)
+  - REUSABLE COMPONENT — same panel used in Analyze AND Remediate contexts
+  - Build as Figma component with props: resourceName, pathCount, pathList[]
+
+Figma annotation: "Resource Detail Panel — slide-over, metadata + all paths containing this resource"
+
+
+[FRAME 16] — Contextual Risk Scoring Section
+--------------------------------------------------------------------------------
+Screen state: Risk scoring table showing adjusted scores
+
+Components:
+  - Section heading: "Contextual Risk Scoring"
+  - Score table:
+      Asset            | Base | Adjusted | Delta        | Reason
+      API Gateway      | 73   | 97       | +24 (+33%)   | Toxic combo · internet-facing
+      Auth Service     | 68   | 91       | +23 (+34%)   | Chokepoint · 3 paths
+      Dev Test Server  | 62   | 27       | -35 (-56%)   | Isolated · no lateral path
+
+  Score delta styling:
+    Increase: color #E5002B, upward arrow ↑
+    Decrease: color #16a34a, downward arrow ↓
+  Reason tag: small grey pill with reason text
+
+Figma annotation: "Contextual Risk Scoring — adjusted scores with delta indicators and reason tags"
+
+
+[FRAME 17] — Toxic Combinations Section
+--------------------------------------------------------------------------------
+Screen state: 3 toxic combo nodes shown as highlighted cards
+
+Components:
+  - Heading: "Toxic Combinations" + count badge 3 (red)
+  - Sub-text: "Nodes where CVE + IAM misconfiguration + internet exposure intersect"
+  - 3 cards, each with:
+      Asset name (underlined, clickable → Frame 15)
+      Factor chips:
+        "CVE-2024-1234"          (red chip)
+        "IAM: AdministratorAccess" (amber chip)
+        "Internet Exposed"       (purple chip)
+      Badge: "TOXIC COMBO" (dark red)
+
+Design notes:
+  - Asset name: underlined, cursor pointer — click opens Resource Detail Panel
+
+Figma annotation: "Toxic Combinations — 3 auto-detected nodes, clickable asset names open Resource Detail Panel"
+
+
+[FRAME 18] — Privilege Escalation Mapping
+--------------------------------------------------------------------------------
+Screen state: Step-by-step escalation chain displayed
+
+Components:
+  - Heading: "Privilege Escalation Mapping"
+  - Numbered steps:
+      1. Standard User → SSH into VM         (T1021.004 Remote Services)
+      2. VM → IAM role assumption            (T1548 Abuse Elevation)
+      3. IAM → AdministratorAccess           (T1078 Valid Accounts)
+      4. Admin → S3 bucket read              (T1530 Data from Cloud Storage)
+      5. S3 → Exfiltrate Finance DB          (T1041 Exfiltration)
+  - Each step:
+      Step number circle (filled, teal)
+      Action description text
+      MITRE technique chip: bg #ecfeff  color #0e7490
+
+Figma annotation: "Privilege Escalation — numbered steps with MITRE ATT&CK technique IDs"
+
+
+[FRAME 19] — Identity & Lateral Movement
+--------------------------------------------------------------------------------
+Screen state: AD identity and group exposure list
+
+Components:
+  - Heading: "Identity & Lateral Movement"
+  - Identity rows:
+      "svc-deploy"                              (service account)
+      "AD Group: domain-admins"                 (risk badge: HIGH)
+      "GPO: Unrestricted PowerShell"            (risk badge: HIGH)
+      "Kerberos: Unconstrained delegation"      (risk badge: CRITICAL)
+  - Each row: icon (identity/group/policy/kerberos) + label + risk badge
+
+Figma annotation: "Identity & Lateral Movement — AD groups, GPO exposure, Kerberos delegation risks"
+
+
+================================================================================
+PHASE 03 — REMEDIATE FRAMES
+================================================================================
+
+[FRAME 20] — Remediate Tab — Initial Load + Risk Summary
+--------------------------------------------------------------------------------
+Screen state: Tab switches to 03 Remediate; risk summary cards at top
+
+Components:
+  - Tab bar: Remediate tab active (green underline)
+  - Risk Summary cards (3):
+      Toxic Combos:   3          (red)
+      Score Elevated: 8 assets   (orange)
+      Avg ROI:        6.4x       (green)
+  - Card style matches Frame 04 KPI cards
+
+Figma annotation: "03 Remediate tab — Risk Summary cards at top"
+
+
+[FRAME 21] — Prioritized Action List — Default State
+--------------------------------------------------------------------------------
+Screen state: Full action list, sorted Critical → High → Medium → Low
+
+Severity section header: "● CRITICAL  3 actions" (bold, colour-coded)
+
+Each action row:
+  Left:   Severity dot (colour-coded)
+          Action title: "Patch CVE-2024-1234 on Exposed VM" (bold 13px)
+          Sub-text: asset name + type
+          [TOXIC COMBO flag if applicable] amber badge "⚠️ TOXIC COMBO"
+          [CROSS-PATH badge if shared]: "🔗 Affects 3 paths" — teal chip, clickable → Frame 15
+  Right:  ETA: 2h (grey)
+          Effort: Low (green) / Medium (amber) / High (red)
+          ROI: 8.2x (bold, colour-coded)
+          Action buttons group (see Frame 22)
+
+Cross-path chip styling:
+  bg #ecfeff  border 1px solid #06b6d4  color #0e7490
+  border-radius 20px  padding 2px 10px  font-size 11px
+  cursor pointer; hover → underline + slight scale
+
+ROI colour coding:
+  >= 7x:   color #15803d (green)
+  4 – 7x:  color #d97706 (amber)
+  < 4x:    color #64748b (grey)
+
+Figma annotation: "Prioritized Action List — sections by severity, Affects N paths chip on shared-resource actions"
+
+
+[FRAME 22] — Action Row — Choose Action State
+--------------------------------------------------------------------------------
+Screen state: User hovers an action row; action buttons appear
+
+Delta from Frame 21:
+  - Row hover: bg #f8fafc
+  - 3 action buttons (right side):
+      Mark Fixed    | bg #dcfce7  border #16a34a  color #15803d
+      Create Ticket | bg #dbeafe  border #3b82f6  color #1d4ed8
+      Suppress      | bg #fef9c3  border #ca8a04  color #713f12
+  - Button style: border-radius 6px, padding 5px 12px, font-size 11px, font-weight 700
+
+Interactions:
+  - Mark Fixed     → row fades / strikethrough; risk score updates
+  - Create Ticket  → ITSM modal (out of scope this sprint)
+  - Suppress       → justification input modal (out of scope this sprint)
+
+Figma annotation: "Action row hover — Mark Fixed / Create Ticket / Suppress buttons"
+
+
+[FRAME 23] — Cross-Path Blast Radius (Resource Detail Panel from Remediate)
+--------------------------------------------------------------------------------
+Screen state: User clicked "🔗 Affects 3 paths" chip; Resource Detail Panel slides in
+
+Components:
+  - Same Resource Detail Panel as Frame 15 (reusable component)
+  - Context: opened from Remediate tab
+  - Panel header: "Redis Cache" — same metadata fields
+  - "Part of 3 Attack Paths": AP-5014, AP-5028, AP-5024
+  - Insight tip: "Remediating this resource will reduce risk across all 3 paths."
+
+Design notes:
+  - Component is IDENTICAL in Analyze and Remediate — build once, use everywhere
+  - Props: resourceName, pathCount, pathList[]
+
+Figma annotation: "Resource Detail Panel — from Remediate via 'Affects 3 paths' chip"
+
+
+[FRAME 24] — All Actions Addressed — Loop State
+--------------------------------------------------------------------------------
+Screen state: Some but not all actions addressed; decision node
+
+Components:
+  - Progress counter: "7 of 12 actions addressed"
+  - Remaining actions: still visible in list
+  - Loop indicator: orange banner — "3 critical actions remain. Continue reviewing."
+  - Addressed actions: accordion collapsed (grey, strikethrough style)
+
+Figma annotation: "Mid-remediation state — partial progress, loop indicator for remaining actions"
+
+
+[FRAME 25] — Path Closed — Outcome State
+--------------------------------------------------------------------------------
+Screen state: All critical actions addressed; success state rendered
+
+Components:
+  - Success banner (full-width, green):
+      bg #dcfce7  border 1.5px solid #16a34a  border-radius 8px
+      Icon: check circle (green)
+      Heading: "Attack Path AP-5014 — Risk Reduced"
+      Sub-text: "Risk score reduced from 94 → 38. All critical actions addressed."
+  - Action rows: green checkmarks + strikethrough
+  - Risk score delta (prominent): "94 → 38 (▼ 60%)"
+  - CTAs:
+      "← Return to Discover"
+      "View next critical path →"
+
+Figma annotation: "Path Closed — success state, risk score 94 → 38, all actions addressed"
+
+
+================================================================================
+COMPONENT LIBRARY CHECKLIST
+Build these as reusable Figma components BEFORE building frames
+================================================================================
+
+Component                   | Variants needed
+----------------------------|--------------------------------------------------
+KPI Card                    | 5 colour variants
+Severity Badge              | Critical / High / Medium / Low
+Attack Path Row             | Default / Hover / Selected
+Resources Badge             | Shared (orange) / Unique (green)
+Match Chip                  | Active search match indicator
+Flow Node                   | Entry Point / Vuln Host / Identity / Lateral / Crown Jewel
+Edge Arrow                  | Default / Hover / Selected
+MITRE Technique Tag         | Standard teal pill
+Shared Resources Banner     | Visible / Hidden (conditional)
+"In N paths" Badge          | Teal, count as prop
+Asset Metadata Card         | Shared / Unique variants
+Resource Detail Panel       | Overlay component (Analyze + Remediate contexts)
+Action Row                  | Default / Hover / Addressed / Suppressed
+Cross-path Chip             | "Affects N paths" — teal, count as prop
+ROI Badge                   | Green / Amber / Grey by value
+Action Buttons              | Mark Fixed / Create Ticket / Suppress
+Success Banner              | Green, path closed
+Tab Bar                     | Discover / Analyze / Remediate active states
+
+
+================================================================================
+COLOUR TOKEN REFERENCE
+================================================================================
+
+Token              | Hex       | Usage
+-------------------|-----------|------------------------------------------------
+qualys-red         | #E5002B   | Primary CTA, Critical severity, Crown Jewel border
+discover-blue      | #2563eb   | Discover tab, primary actions
+analyze-teal       | #0891b2   | Analyze tab, In-N-paths badges, Resource Detail Panel
+remediate-green    | #16a34a   | Remediate tab, Mark Fixed, success states
+shared-orange      | #ea580c   | Shared resource badges, warning banner
+toxic-amber        | #ca8a04   | Toxic combo indicators, suppress action
+surface-light      | #f8fafc   | Card backgrounds, hover states
+border-default     | #e2e8f0   | Standard borders
+text-primary       | #0f172a   | Body text
+text-muted         | #64748b   | Labels, secondary text
+text-subtle        | #94a3b8   | Captions, sub-labels
+
+
+================================================================================
+FRAME DELIVERY ORDER (SUGGESTED SPRINT PLAN)
+================================================================================
+
+Sprint 1 — Core Navigation + Discover
+  Frames: 01, 02, 03, 04, 05, 06, 07, 08, 09
+
+Sprint 2 — Analyze Flow + New Features
+  Frames: 10, 11, 12, 13, 14, 15, 16, 17, 18, 19
+
+Sprint 3 — Remediate + Outcomes
+  Frames: 20, 21, 22, 23, 24, 25
+
+Component Library
+  Build in parallel with Sprint 1
+  MUST be complete before Sprint 2 frames begin
+
+================================================================================
+END OF SCRIPT — UX / FIGMA VERSION
+================================================================================
