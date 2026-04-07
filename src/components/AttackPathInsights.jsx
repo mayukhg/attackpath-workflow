@@ -54,6 +54,29 @@ const RESOURCES = [
   { id: 'res-lambda-fn',    name: 'lambda-sql-executor',     type: 'Serverless',        severity: 'HIGH',     exploitability: 'High',     os: 'AWS Lambda (Node 18)', criticality: 'High',             ports: '443',          services: 'Public Lambda (no auth)' },
   { id: 'res-iam-role',     name: 'iam-role-lambda-admin',   type: 'IAM Role',          severity: 'CRITICAL', exploitability: 'Critical', os: 'AWS IAM',              criticality: 'Mission Critical', ports: 'N/A',          services: 'AdministratorAccess policy' },
   { id: 'res-rds-db',       name: 'rds-prod-db-01',          type: 'Database',          severity: 'CRITICAL', exploitability: 'High',     os: 'AWS RDS (MySQL 8)',    criticality: 'Mission Critical', ports: '3306',         services: 'MySQL 8 (Production DB)' },
+  // ── New resources for Path A: Cloud-to-Core Infrastructure Pivot ─────────────
+  { id: 'res-saas-tenant',    name: 'saas-tenant-acme.okta.com',     type: 'SaaS Application',       severity: 'HIGH',     exploitability: 'High',     os: 'Okta / Microsoft 365 (SaaS)',     criticality: 'High',             ports: '443',           services: 'SaaS IdP — MFA disabled on 12 accounts (Qualys SaaSDR)' },
+  { id: 'res-cloud-mgmt-a',   name: 'aws-mgmt-console-acme-prod',    type: 'Cloud Console',          severity: 'CRITICAL', exploitability: 'Critical', os: 'AWS Management Console',          criticality: 'Mission Critical', ports: '443',           services: 'AWS Console — Service Account Key hardcoded in GitHub repo (Qualys CSPM)' },
+  { id: 'res-ec2-pwnkit',     name: 'ec2-linux-pwnkit-prod-01',      type: 'Server',                 severity: 'CRITICAL', exploitability: 'Critical', os: 'Ubuntu 20.04 LTS (polkit 0.105)', criticality: 'High',             ports: '22, 443, 8080', services: 'Linux App Server — CVE-2021-4034 PwnKit unpatched (Qualys VMDR)' },
+  { id: 'res-always-on-vpn',  name: 'vpn-always-on-cloud-vpc-01',    type: 'VPN',                    severity: 'HIGH',     exploitability: 'High',     os: 'Cisco AnyConnect / AWS VPN',      criticality: 'High',             ports: '443, 1194',     services: 'Always-On Cloud VPN — unrestricted corporate routing (Qualys CSAM)' },
+  { id: 'res-onprem-sql',     name: 'sql-srv-onprem-pii-01',         type: 'Database',               severity: 'CRITICAL', exploitability: 'High',     os: 'SQL Server 2019 / Windows',       criticality: 'Mission Critical', ports: '1433',          services: 'On-Prem SQL Server — PII store, Public role misconfiguration (Qualys PC)' },
+  // ── New resources for Path B: Shadow-IT API Breach ───────────────────────────
+  { id: 'res-shadow-subdomain', name: 'uat-hidden.acme-corp.io',     type: 'Web Asset',              severity: 'HIGH',     exploitability: 'High',     os: 'Ubuntu 22.04 (Shadow UAT)',       criticality: 'Low',              ports: '80, 443',       services: 'Unmanaged UAT environment — not in asset inventory (Qualys EASM)' },
+  { id: 'res-shadow-api',       name: 'api-uat.acme-corp.io/v2',     type: 'API Gateway',            severity: 'HIGH',     exploitability: 'High',     os: 'Node.js 18 / Express',            criticality: 'Medium',           ports: '443, 3000',     services: 'Undocumented API — BOLA, no object-level authorization (Qualys API Security)' },
+  { id: 'res-web-shell',        name: 'webserver-uat-01',             type: 'Web Server',             severity: 'CRITICAL', exploitability: 'Critical', os: 'Nginx 1.21 / PHP 8.1',            criticality: 'High',             ports: '80, 443',       services: 'UAT Web Server — web shell persisted, no FIM deployed (Qualys FIM)' },
+  { id: 'res-container-host',   name: 'container-host-uat-01',       type: 'Container Orchestration',severity: 'CRITICAL', exploitability: 'Critical', os: 'Docker 24 / runc (no seccomp)',    criticality: 'Mission Critical', ports: '2375, 8080',    services: 'Container Host — privileged runtime, no Pod Security Admission (Qualys Container Security)' },
+  // ── New resources for Path C: Supply Chain & Hybrid Identity Pivot ───────────
+  { id: 'res-vuln-lib',         name: 'npm:log4j-dep@2.14.1',        type: 'Software Package',       severity: 'CRITICAL', exploitability: 'Critical', os: 'npm Registry (supply chain)',     criticality: 'Mission Critical', ports: 'N/A',           services: 'Vulnerable npm Package — RCE via transitive dependency (Qualys VMDR SCA)' },
+  { id: 'res-cicd-pipeline',    name: 'jenkins-cicd-pipeline-sc',    type: 'CI/CD',                  severity: 'HIGH',     exploitability: 'High',     os: 'Jenkins 2.414 LTS',               criticality: 'High',             ports: '8080, 443',     services: 'CI/CD Pipeline — no SCA scan, no secret detection gate (Qualys TotalCloud)' },
+  { id: 'res-prod-k8s',         name: 'prod-k8s-cluster-eks-01',     type: 'Container Orchestration',severity: 'CRITICAL', exploitability: 'Critical', os: 'Kubernetes 1.29 / EKS',           criticality: 'Mission Critical', ports: '6443, 10250',   services: 'Production EKS Cluster — no admission controller, vulnerable runtime (Qualys Container Security)' },
+  { id: 'res-pod-iam',          name: 'iam-role-pod-write-prod',     type: 'IAM Role',               severity: 'CRITICAL', exploitability: 'Critical', os: 'AWS IAM (IRSA / IMDS)',           criticality: 'Mission Critical', ports: 'N/A',           services: 'Pod-attached IAM Role — Write permissions on prod, IMDS reachable (Qualys CSPM CIEM)' },
+  { id: 'res-hybrid-ad',        name: 'entra-connect-sync-01',       type: 'Identity Federation',    severity: 'CRITICAL', exploitability: 'High',     os: 'Microsoft Entra ID Connect 2.x',  criticality: 'Mission Critical', ports: '443, 9090',     services: 'Entra ID Connect — password writeback enabled, full on-prem AD sync (Qualys PC)' },
+  // ── New resources for Path D: Identity Vault Compromise ──────────────────────
+  { id: 'res-bt-appliance',   name: 'beyondtrust-rs-appliance-01',  type: 'PAM Appliance',          severity: 'CRITICAL', exploitability: 'Critical', os: 'BeyondTrust RS 23.x (internet-facing)', criticality: 'Mission Critical', ports: '443, 8080',     services: 'BeyondTrust Remote Support — CVE-2026-1731 pre-auth RCE (Qualys EASM + VMDR)' },
+  { id: 'res-cred-vault',     name: 'pam-credential-vault-prod-01', type: 'Credential Vault',       severity: 'CRITICAL', exploitability: 'Critical', os: 'BeyondTrust Vault / CyberArk',         criticality: 'Mission Critical', ports: '443, 8443',     services: 'PAM Credential Vault — all privileged account passwords stored (Qualys CSAM + PC)' },
+  { id: 'res-crown-dbs',      name: 'core-dbs-backup-prod-cluster', type: 'Backup System',          severity: 'CRITICAL', exploitability: 'High',     os: 'Windows Server 2022 / SQL + Veeam',    criticality: 'Mission Critical', ports: '1433, 9392',    services: 'Core Databases + Backup Systems — ransomware / exfiltration target (Qualys VMDR + EDR)' },
+  // ── New resources for Path 6003: VPN Brute-Force → AD Takeover ───────────────
+  { id: 'res-win-server-unpatched', name: 'win-srv-2019-legacy-01', type: 'Server', severity: 'CRITICAL', exploitability: 'Critical', os: 'Windows Server 2019 (unpatched)', criticality: 'High', ports: '445, 3389, 135', services: 'Legacy Windows Server — MS17-010 (EternalBlue) unpatched, NTLMv1 enabled (Qualys VMDR)' },
 ]
 
 // ─── Many-to-many helpers ─────────────────────────────────────────────────────
@@ -79,6 +102,179 @@ const getSharedResourceIds = (pathId) => {
 // `resources` (plain count) replaced by `resourceIds[]` — references into RESOURCES store.
 // Each flowNode may carry an optional `resourceId` linking it to a RESOURCES entry.
 const ATTACK_PATHS = [
+  // ── Path D: Identity Vault Compromise (top priority) ─────────────────────────
+  {
+    id: 8001,
+    title: 'Identity Vault Compromise — PAM Appliance RCE to Full Domain Ransomware',
+    severity: 'CRITICAL',
+    entry: 'Internet Exposure (BeyondTrust Appliance)',
+    target: 'Core Databases + Backups (Exfiltration / Ransomware)',
+    hops: 5, gaps: 4, score: 99,
+    resourceIds: ['res-bt-appliance', 'res-cred-vault', 'res-domain-ctrl', 'res-crown-dbs'],
+    mitre: 'T1190 → T1505.003 → T1555 → T1078.002 → T1486',
+    path: 'Internet → BeyondTrust RCE → Webshell/RAT → PAM Vault → Domain Admin → DBs + Backups (Ransomware)',
+    status: 'open',
+    flowNodes: [
+      { label: 'Internet Exposure',      icon: '🌐', severity: null,       isStart: true },
+      { label: 'BeyondTrust Appliance',  icon: '🔐', severity: 'CRITICAL', edge: 'Pre-auth RCE CVE-2026-1731', resourceId: 'res-bt-appliance' },
+      { label: 'Webshell / RAT',         icon: '🦠', severity: 'CRITICAL', edge: 'Webshell + RAT Deploy' },
+      { label: 'Credential Vault',       icon: '🔒', severity: 'CRITICAL', edge: 'PAM Vault Access',           resourceId: 'res-cred-vault' },
+      { label: 'Domain Admin',           icon: '👤', severity: 'CRITICAL', edge: 'AD Enum + DA Creation',      resourceId: 'res-domain-ctrl' },
+      { label: 'DBs + Backups',          icon: null,  severity: 'CRITICAL', edge: 'Exfiltration + Ransomware', resourceId: 'res-crown-dbs', isCrown: true },
+    ],
+    gaps_detail: [
+      { label: 'Internet-Exposed PAM:',   value: 'BeyondTrust appliance publicly reachable — CVE-2026-1731 pre-auth RCE requires zero credentials. Wormable and remotely exploitable with no user interaction (Qualys EASM + VMDR)' },
+      { label: 'Webshell Persistence:',  value: 'Attacker writes webshell to BeyondTrust document root and deploys RAT — FIM not deployed on PAM appliance for real-time file change detection (Qualys FIM + Multi-Vector EDR)' },
+      { label: 'PAM Vault Unguarded:',   value: 'Compromised appliance service account has direct vault access — no vault access anomaly detection or session recording on privileged account retrieval (Qualys CSAM + Policy Compliance)' },
+      { label: 'AD Enumeration Free:',   value: 'No controls on bulk AD enumeration — attacker creates Domain Admin accounts using vault credentials without triggering SIEM or EDR alerts (Qualys Multi-Vector EDR + Policy Compliance)' },
+      { label: 'Chained Path:',          value: 'Internet RCE → Webshell + RAT Persistence → PAM Vault Credential Dump → AD Domain Admin Creation → Crown Jewel DB Exfiltration + Ransomware Deployment' },
+    ],
+    remediation: [
+      { priority: 'CRITICAL', action: 'Remove BeyondTrust appliance from internet immediately — restrict to internal network only and apply CVE-2026-1731 emergency patch (Qualys EASM + VMDR)',             effort: 'Low',    eta: '2 hours', roi: 9.9, resourceId: 'res-bt-appliance' },
+      { priority: 'CRITICAL', action: 'Deploy Qualys FIM on all PAM appliances — real-time alert on any unauthorized file writes to document root or service directories (Qualys FIM + Multi-Vector EDR)', effort: 'Low',    eta: '4 hours', roi: 9.5, resourceId: 'res-bt-appliance' },
+      { priority: 'CRITICAL', action: 'Enforce least-privilege on PAM vault service accounts — enable vault access session logging and anomaly alerting (Qualys CSAM + Policy Compliance)',                 effort: 'Medium', eta: '1 day',   roi: 8.8, resourceId: 'res-cred-vault' },
+      { priority: 'HIGH',     action: 'Deploy Qualys Multi-Vector EDR across all domain-joined systems — enable anomalous AD enumeration and new privileged account creation alerts',                      effort: 'High',   eta: '5 days',  roi: 5.2, resourceId: 'res-domain-ctrl' },
+      { priority: 'HIGH',     action: 'Implement immutable backup snapshots and database activity monitoring — detect mass file-modification indicative of ransomware (Qualys VMDR + Multi-Vector EDR)',    effort: 'Medium', eta: '3 days',  roi: 4.8, resourceId: 'res-crown-dbs' },
+    ],
+  },
+  // ── Path 6003: VPN Brute-Force → AD Takeover ────────────────────────────────
+  {
+    id: 6003,
+    title: 'VPN Brute-Force — Unpatched Windows Host to Active Directory Takeover',
+    severity: 'CRITICAL',
+    entry: 'VPN Gateway (Weak MFA / SMS OTP)',
+    target: 'Domain Controller (Tier-0 — Full Domain Compromise)',
+    hops: 6, gaps: 5, score: 95,
+    resourceIds: ['res-vpn-gateway', 'res-win-server-unpatched', 'res-workstation', 'res-domain-ctrl'],
+    mitre: 'T1110 → T1068 → T1003.001 → T1550.002 → T1003.006',
+    path: 'VPN Gateway → Windows Server → Local Admin → NTLM Hash → Workstation → Domain Controller',
+    status: 'open',
+    flowNodes: [
+      { label: 'VPN Gateway',       icon: '🔐', severity: null,       isStart: true,                                   resourceId: 'res-vpn-gateway' },
+      { label: 'Windows Server',    icon: '🖥️', severity: 'CRITICAL', edge: 'Brute Force Login',                      resourceId: 'res-win-server-unpatched' },
+      { label: 'Local Admin',       icon: '👤', severity: 'HIGH',     edge: 'MS17-010 EternalBlue' },
+      { label: 'NTLM Hash',         icon: '🔑', severity: 'CRITICAL', edge: 'LSASS Dump (Mimikatz)' },
+      { label: 'Workstation',       icon: '💻', severity: 'HIGH',     edge: 'Pass-the-Hash',                           resourceId: 'res-workstation' },
+      { label: 'Domain Controller', icon: null,  severity: 'CRITICAL', edge: 'DCSync Attack',                          resourceId: 'res-domain-ctrl', isCrown: true },
+    ],
+    gaps_detail: [
+      { label: 'Weak VPN MFA:',         value: 'VPN using SMS-based OTP — bypassable via SIM-swap or SS7 interception. No FIDO2 or certificate-based authentication enforced for remote access (Qualys VMDR + Policy Compliance)' },
+      { label: 'Shared Local Admin:',   value: 'Identical local administrator password across all Windows servers — compromise of one host yields lateral movement to all peers via Pass-the-Hash (Qualys Policy Compliance)' },
+      { label: 'MS17-010 Unpatched:',   value: 'EternalBlue vulnerability (CVE-2017-0144) unpatched on internal Windows Server 2019 — unauthenticated RCE allows attacker to elevate to SYSTEM without credentials (Qualys VMDR)' },
+      { label: 'NTLMv1 Domain-Wide:',   value: 'NTLMv1 enabled across all domain controllers — harvested NTLM hashes cracked offline in minutes using commodity GPU hardware (Qualys Policy Compliance)' },
+      { label: 'No Credential Guard:',  value: 'Credential Guard not deployed on workstations — LSASS memory accessible to Mimikatz, enabling full NTLM hash extraction without any detection (Qualys Multi-Vector EDR)' },
+    ],
+    remediation: [
+      { priority: 'CRITICAL', action: 'Replace SMS OTP with FIDO2 phishing-resistant MFA (hardware security keys) for all VPN identities — block all legacy auth protocols at the VPN gateway (Qualys Policy Compliance)',                                  effort: 'Medium', eta: '3 days',  roi: 9.2, resourceId: 'res-vpn-gateway' },
+      { priority: 'CRITICAL', action: 'Deploy Microsoft LAPS (Local Administrator Password Solution) — enforce unique, auto-rotating local admin passwords on every Windows host to eliminate lateral Pass-the-Hash movement (Qualys Policy Compliance)',    effort: 'Low',    eta: '1 day',   roi: 9.5, resourceId: 'res-win-server-unpatched' },
+      { priority: 'CRITICAL', action: 'Emergency patch CVE-2017-0144 (MS17-010 EternalBlue) across all Windows servers via Qualys VMDR one-click patch job — prioritise internet-accessible and internal hosts',                                           effort: 'Medium', eta: '2 days',  roi: 8.8, resourceId: 'res-win-server-unpatched' },
+      { priority: 'HIGH',     action: 'Disable NTLMv1 domain-wide via Group Policy — enforce NTLMv2 minimum and enable LDAP signing + channel binding on all domain controllers (Qualys Policy Compliance)',                                               effort: 'Low',    eta: '4 hours', roi: 8.1, resourceId: 'res-domain-ctrl' },
+      { priority: 'HIGH',     action: 'Enable Windows Credential Guard on all domain-joined workstations — prevents LSASS memory access by Mimikatz and similar credential dumping tools (Qualys Policy Compliance)',                                       effort: 'Medium', eta: '3 days',  roi: 7.3, resourceId: 'res-workstation' },
+      { priority: 'HIGH',     action: 'Add all Tier-0 privileged accounts (Domain Admins, Schema Admins) to the Protected Users security group — prevents NTLM authentication and credential caching for highest-value identities (Qualys Policy Compliance)', effort: 'Low',  eta: '2 hours', roi: 8.6, resourceId: 'res-domain-ctrl' },
+      { priority: 'MEDIUM',   action: 'Enrol all privileged identities in a PAM solution with just-in-time access — replace standing Domain Admin privileges with time-limited, session-recorded elevations (Qualys CSAM)',                                effort: 'High',   eta: '1 week',  roi: 4.1, resourceId: null },
+    ],
+  },
+  // ── 3 new cross-domain attack paths (displayed first) ────────────────────────
+  {
+    id: 7001,
+    title: 'Cloud-to-Core Infrastructure Pivot — SaaS Tenant to On-Prem PII Database',
+    severity: 'CRITICAL',
+    entry: 'SaaS Tenant (MFA Disabled)',
+    target: 'On-Prem SQL Server (PII)',
+    hops: 5, gaps: 4, score: 96,
+    resourceIds: ['res-saas-tenant', 'res-cloud-mgmt-a', 'res-ec2-pwnkit', 'res-always-on-vpn', 'res-onprem-sql'],
+    mitre: 'T1078.004 → T1552.001 → T1068 → T1021.007 → T1048',
+    path: 'SaaS Tenant → Cloud Mgmt Console → EC2 Instance (PwnKit) → Always-On VPN → On-Prem SQL Server',
+    status: 'open',
+    flowNodes: [
+      { label: 'SaaS Tenant',        icon: '☁️', severity: null,       isStart: true,                   resourceId: 'res-saas-tenant' },
+      { label: 'Cloud Mgmt Console', icon: '🖥️', severity: 'CRITICAL', edge: 'Hardcoded SA Key',        resourceId: 'res-cloud-mgmt-a' },
+      { label: 'EC2 Linux Instance', icon: '🖥️', severity: 'CRITICAL', edge: 'PwnKit PrivEsc',          resourceId: 'res-ec2-pwnkit' },
+      { label: 'Always-On VPN',      icon: '🔐', severity: 'HIGH',     edge: 'VPN Tunnel Pivot',        resourceId: 'res-always-on-vpn' },
+      { label: 'On-Prem SQL Server', icon: null,  severity: 'CRITICAL', edge: 'Public DB Permissions',  resourceId: 'res-onprem-sql', isCrown: true },
+    ],
+    gaps_detail: [
+      { label: 'MFA Disabled (SaaS):',    value: 'SaaS tenant user account has MFA disabled — single-factor phishing or credential stuffing sufficient for initial access (Qualys SaaSDR)' },
+      { label: 'Hardcoded SA Key:',       value: 'Service Account Key found in public GitHub repository — no key rotation or secret scanning policy enforced (Qualys CSPM)' },
+      { label: 'PwnKit Unpatched:',       value: 'EC2 instance running vulnerable polkit version (CVE-2021-4034) — local privilege escalation to root in seconds (Qualys VMDR)' },
+      { label: 'Unrestricted VPN Scope:', value: 'Always-On cloud VPC VPN has unrestricted routing — attacker scans entire corporate network from cloud instance (Qualys CSAM)' },
+      { label: 'Chained Path:',          value: 'SaaS MFA Bypass → Hardcoded SA Key → EC2 Root (PwnKit) → VPN Internal Pivot → On-Prem SQL PII Exfiltration' },
+    ],
+    remediation: [
+      { priority: 'CRITICAL', action: 'Enforce MFA on all SaaS tenant accounts via Conditional Access — block legacy auth protocols (Qualys SaaSDR)',                         effort: 'Low',    eta: '2 hours', roi: 9.6, resourceId: 'res-saas-tenant' },
+      { priority: 'CRITICAL', action: 'Immediately rotate and revoke exposed Service Account Keys — remove from all repositories and enable secret scanning (Qualys CSPM)', effort: 'Low',    eta: '30 mins', roi: 9.8, resourceId: 'res-cloud-mgmt-a' },
+      { priority: 'HIGH',     action: 'Patch CVE-2021-4034 (PwnKit) across all EC2 Linux instances via Qualys VMDR patch management',                                       effort: 'Medium', eta: '1 day',   roi: 7.1, resourceId: 'res-ec2-pwnkit' },
+      { priority: 'HIGH',     action: 'Apply VPN network segmentation — restrict cloud-to-corporate routing to required services only (Qualys CSAM)',                       effort: 'Medium', eta: '3 days',  roi: 5.4, resourceId: 'res-always-on-vpn' },
+      { priority: 'MEDIUM',   action: 'Enforce least-privilege SQL Server permissions — remove Public role and audit all database access grants (Qualys Policy Compliance)', effort: 'Medium', eta: '2 days',  roi: 3.9, resourceId: 'res-onprem-sql' },
+    ],
+  },
+  {
+    id: 7002,
+    title: 'Shadow-IT API Breach — Unmanaged Asset to Active Directory Takeover',
+    severity: 'CRITICAL',
+    entry: 'Shadow Subdomain (EASM Discovery)',
+    target: 'Active Directory (Domain Admin Hash)',
+    hops: 5, gaps: 4, score: 94,
+    resourceIds: ['res-shadow-subdomain', 'res-shadow-api', 'res-web-shell', 'res-container-host', 'res-domain-ctrl'],
+    mitre: 'T1590.001 → T1190 → T1505.003 → T1611 → T1003.001',
+    path: 'Shadow Subdomain → BOLA API → Web Shell → Container Escape → NTLM Hash Dump → AD Domain Admin',
+    status: 'open',
+    flowNodes: [
+      { label: 'Shadow Subdomain',    icon: '🌐', severity: null,       isStart: true,                   resourceId: 'res-shadow-subdomain' },
+      { label: 'Shadow API Endpoint', icon: '🖥️', severity: 'HIGH',     edge: 'BOLA Exploitation',       resourceId: 'res-shadow-api' },
+      { label: 'Web Shell',           icon: '🌐', severity: 'CRITICAL', edge: 'Script Injection',        resourceId: 'res-web-shell' },
+      { label: 'Container Host',      icon: '☸️', severity: 'CRITICAL', edge: 'Container Escape',        resourceId: 'res-container-host' },
+      { label: 'Active Directory',    icon: null,  severity: 'CRITICAL', edge: 'NTLM Hash + DA Abuse',   resourceId: 'res-domain-ctrl', isCrown: true },
+    ],
+    gaps_detail: [
+      { label: 'Unmanaged Asset:',    value: 'UAT subdomain not in asset inventory — discovered via DNS brute-forcing with no security controls or authentication (Qualys EASM)' },
+      { label: 'BOLA Vulnerability:', value: 'Shadow API has no object-level authorization — attacker accesses any user\'s data by modifying object IDs in API requests (Qualys API Security)' },
+      { label: 'No FIM on UAT:',      value: 'Web shell written to server filesystem without triggering alerts — File Integrity Monitoring not deployed on UAT environment (Qualys FIM)' },
+      { label: 'Insecure Container:', value: 'Container running with privileged flag and host namespace access — escape to underlying host is trivial (Qualys Container Security)' },
+      { label: 'Chained Path:',       value: 'DNS Brute-Force → BOLA API Exploit → Web Shell Persistence → Container Escape → NTLM Hash Dump → Domain Admin Impersonation' },
+    ],
+    remediation: [
+      { priority: 'CRITICAL', action: 'Enumerate and decommission all shadow UAT subdomains — enforce asset registration policy via Qualys EASM continuous discovery',              effort: 'Medium', eta: '3 days',  roi: 7.8, resourceId: 'res-shadow-subdomain' },
+      { priority: 'CRITICAL', action: 'Implement BOLA controls — enforce object-level authorization on all API endpoints and enable API inventory (Qualys API Security)',         effort: 'Medium', eta: '2 days',  roi: 8.2, resourceId: 'res-shadow-api' },
+      { priority: 'HIGH',     action: 'Deploy Qualys FIM across all web-facing servers including UAT environments to detect unauthorized file system changes',                    effort: 'Medium', eta: '2 days',  roi: 6.5, resourceId: 'res-web-shell' },
+      { priority: 'HIGH',     action: 'Enforce restrictive container security policies — disable privileged containers in all namespaces (Qualys Container Security)',            effort: 'Low',    eta: '4 hours', roi: 8.5, resourceId: 'res-container-host' },
+      { priority: 'MEDIUM',   action: 'Deploy Qualys Multi-Vector EDR on all container hosts to detect NTLM hash dumping and lateral credential abuse',                          effort: 'High',   eta: '5 days',  roi: 3.6, resourceId: 'res-domain-ctrl' },
+    ],
+  },
+  {
+    id: 7003,
+    title: 'Supply Chain & Hybrid Identity Pivot — Vulnerable Library to On-Prem AD',
+    severity: 'CRITICAL',
+    entry: 'Vulnerable Third-Party Library (Supply Chain)',
+    target: 'On-Prem Active Directory (Hybrid Identity Sync)',
+    hops: 5, gaps: 4, score: 93,
+    resourceIds: ['res-vuln-lib', 'res-cicd-pipeline', 'res-prod-k8s', 'res-pod-iam', 'res-hybrid-ad'],
+    mitre: 'T1195.001 → T1072 → T1610 → T1528 → T1484.002',
+    path: 'Vulnerable Library → CI/CD Pipeline → Prod K8s → Pod IAM Role → Entra Connect → On-Prem AD',
+    status: 'open',
+    flowNodes: [
+      { label: 'Vulnerable Library', icon: '📦', severity: null,       isStart: true,                   resourceId: 'res-vuln-lib' },
+      { label: 'CI/CD Pipeline',     icon: '⚙️', severity: 'HIGH',     edge: 'Unscanned Build Deploy',  resourceId: 'res-cicd-pipeline' },
+      { label: 'Prod K8s Cluster',   icon: '☸️', severity: 'CRITICAL', edge: 'Vulnerability Exploit',   resourceId: 'res-prod-k8s' },
+      { label: 'Cloud IAM Role',     icon: '🔑', severity: 'CRITICAL', edge: 'Pod IAM Role Theft',      resourceId: 'res-pod-iam' },
+      { label: 'On-Prem AD (Sync)',  icon: null,  severity: 'CRITICAL', edge: 'Entra Connect Abuse',    resourceId: 'res-hybrid-ad', isCrown: true },
+    ],
+    gaps_detail: [
+      { label: 'Unscanned Dependency:', value: 'Developer pulls malicious / outdated package into build without SCA scan — critical CVE undetected in dependency tree (Qualys VMDR SCA)' },
+      { label: 'No Pipeline Gate:',     value: 'CI/CD build deployed without vulnerability or secret scanning — no quality gate blocking vulnerable images reaching production (Qualys TotalCloud)' },
+      { label: 'No Runtime Policy:',   value: 'Container runtime permits exploit code execution — no admission controller blocking vulnerable workloads from scheduling (Qualys Container Security)' },
+      { label: 'Over-Privileged Pod:', value: 'Pod-attached IAM role has Write permissions on production resources — RCE code steals credentials via IMDS (Qualys CSPM CIEM)' },
+      { label: 'Chained Path:',       value: 'Malicious Library → Unscanned CI/CD Deploy → K8s Shell → Pod IAM Theft → Entra ID Connect Sync → On-Prem AD Password Reset → Domain Admin' },
+    ],
+    remediation: [
+      { priority: 'CRITICAL', action: 'Enforce SCA gates in CI/CD — block builds with critical CVEs using Qualys VMDR Software Composition Analysis',                               effort: 'Medium', eta: '1 day',   roi: 8.9, resourceId: 'res-vuln-lib' },
+      { priority: 'CRITICAL', action: 'Add vulnerability scanning and secret detection to all CI/CD pipelines before deployment (Qualys TotalCloud / Container Security)',          effort: 'Medium', eta: '2 days',  roi: 7.6, resourceId: 'res-cicd-pipeline' },
+      { priority: 'HIGH',     action: 'Implement Kubernetes admission controller to block vulnerable and unsigned container images from production namespaces',                     effort: 'Low',    eta: '4 hours', roi: 8.3, resourceId: 'res-prod-k8s' },
+      { priority: 'HIGH',     action: 'Apply least-privilege to all pod-attached IAM roles — remove Write permissions from all workload identities (Qualys CSPM CIEM)',           effort: 'Low',    eta: '2 hours', roi: 8.7, resourceId: 'res-pod-iam' },
+      { priority: 'MEDIUM',   action: 'Audit Entra ID Connect configuration — restrict password writeback to privileged accounts and enable sync activity alerting (Qualys PC)',  effort: 'Medium', eta: '2 days',  roi: 4.2, resourceId: 'res-hybrid-ad' },
+    ],
+  },
+  // ── Existing paths ───────────────────────────────────────────────────────────
   {
     id: 5014,
     title: 'Publicly Exposed VM with No Encryption on EBS',
@@ -244,8 +440,13 @@ const SCORING_ITEMS = [
   { asset: 'API Gateway',     resourceId: 'res-graphql-api', reason: 'Toxic Combination: CVE + IAM + Internet-facing (+24%)', base: 73, adjusted: 97, delta: '+24%', positive: true  },
   { asset: 'Jump Server',     resourceId: null,              reason: 'Choke Point (+19%): converges 5 attack paths',          base: 68, adjusted: 87, delta: '+19%', positive: true  },
   { asset: 'Redis Cache',     resourceId: 'res-redis-cache', reason: 'Choke Point (+29%): no auth + credential store',        base: 65, adjusted: 94, delta: '+29%', positive: true  },
-  { asset: 'Dev Test Server', resourceId: null,              reason: 'No Reachability: isolated VLAN, no external paths',     base: 62, adjusted: 27, delta: '-57%', positive: false },
-  { asset: 'Staging DB',      resourceId: null,              reason: 'Dormant: no verified credential or service path',       base: 58, adjusted: 28, delta: '-51%', positive: false },
+  { asset: 'Dev Test Server',   resourceId: null,                reason: 'No Reachability: isolated VLAN, no external paths',                                    base: 62, adjusted: 27,  delta: '-57%', positive: false },
+  { asset: 'Staging DB',        resourceId: null,                reason: 'Dormant: no verified credential or service path',                                      base: 58, adjusted: 28,  delta: '-51%', positive: false },
+  { asset: 'BeyondTrust Appliance', resourceId: 'res-bt-appliance',        reason: 'Internet-Exposed PAM + Pre-auth RCE + Vault Access + Full Domain Path (+29%)',                        base: 71, adjusted: 100, delta: '+29%', positive: true  },
+  { asset: 'Windows Server (Legacy)', resourceId: 'res-win-server-unpatched', reason: 'MS17-010 Unpatched + Shared Local Admin + NTLMv1 + No Credential Guard (+27%)',                       base: 68, adjusted: 95,  delta: '+27%', positive: true  },
+  { asset: 'Shadow API',        resourceId: 'res-shadow-api',    reason: 'BOLA + Unmanaged Asset + No FIM + Container Escape Path (+28%)',                       base: 67, adjusted: 96,  delta: '+28%', positive: true  },
+  { asset: 'Cloud Mgmt Console',resourceId: 'res-cloud-mgmt-a', reason: 'Hardcoded SA Key + SaaS MFA Bypass + Direct VPN Pivot to Corp Net (+26%)',             base: 70, adjusted: 95,  delta: '+26%', positive: true  },
+  { asset: 'Prod K8s Cluster',  resourceId: 'res-prod-k8s',     reason: 'Unscanned Supply Chain + Over-Privileged Pod IAM + Hybrid AD Sync Path (+25%)',        base: 68, adjusted: 93,  delta: '+25%', positive: true  },
 ]
 
 const TOXIC_COMBOS = [
@@ -280,6 +481,61 @@ const TOXIC_COMBOS = [
       { label: 'Credential:',        value: 'Service account credentials cached in memory' },
       { label: 'Topology:',          value: 'Network path to LDAP/AD identity store' },
       { label: 'Path to Crown Jewel:', value: 'Redis Cache → Cached Creds → LDAP / AD' },
+    ],
+  },
+  {
+    title: 'Shared Local Admin Password + MS17-010 + NTLMv1 + No Credential Guard',
+    severity: 'CRITICAL', resourceId: 'res-win-server-unpatched', asset: 'win-srv-2019-legacy-01',
+    mitre: 'T1110 → T1068 → T1003.001 → T1550.002 → T1003.006',
+    items: [
+      { label: 'Identity Gap:',       value: 'Identical local admin password across all Windows servers — single hash enables Pass-the-Hash to every peer host without cracking (Qualys Policy Compliance)' },
+      { label: 'Vulnerability:',      value: 'CVE-2017-0144 (MS17-010 EternalBlue) unpatched — unauthenticated SYSTEM-level RCE from any network-adjacent position (Qualys VMDR)' },
+      { label: 'Protocol Weakness:',  value: 'NTLMv1 enabled domain-wide — captured hashes cracked offline in minutes with commodity hardware; no Kerberos-only policy enforced' },
+      { label: 'Path to Crown Jewel:', value: 'VPN Brute Force → EternalBlue Exploit → Local Admin → LSASS Dump → Pass-the-Hash → DCSync → Full Domain Compromise' },
+    ],
+  },
+  {
+    title: 'Internet-Exposed PAM + Pre-auth RCE + Credential Vault + Domain Admin Creation',
+    severity: 'CRITICAL', resourceId: 'res-bt-appliance', asset: 'beyondtrust-rs-appliance-01',
+    mitre: 'T1190 → T1505.003 → T1555 → T1078.002 → T1486',
+    items: [
+      { label: 'Internet Exposure:',   value: 'BeyondTrust PAM appliance reachable from internet — zero-click pre-auth RCE (CVE-2026-1731) requires no credentials (Qualys EASM + VMDR)' },
+      { label: 'Persistence:',         value: 'Webshell and RAT deployed post-exploitation — no FIM or behavioral EDR on PAM appliance to detect unauthorized file writes' },
+      { label: 'Choke Point (Vault):', value: 'Compromised appliance holds keys to all privileged identities — single host compromise equals full domain credential access (Qualys CSAM)' },
+      { label: 'Path to Crown Jewel:', value: 'BeyondTrust RCE → Webshell → PAM Vault Dump → Domain Admin → Core DB Exfiltration + Enterprise Ransomware' },
+    ],
+  },
+  {
+    title: 'SaaS MFA Disabled + Hardcoded SA Key + Always-On VPN + Public SQL Permissions',
+    severity: 'CRITICAL', resourceId: 'res-cloud-mgmt-a', asset: 'aws-mgmt-console-acme-prod',
+    mitre: 'T1078.004 → T1552.001 → T1021.007 → T1048',
+    items: [
+      { label: 'Identity Gap:',        value: 'SaaS tenant MFA disabled — credential stuffing bypasses all single-factor authentication controls (Qualys SaaSDR)' },
+      { label: 'Credential Exposure:', value: 'Service Account Key hardcoded in GitHub repository — no rotation, no detection policy (Qualys CSPM)' },
+      { label: 'Network Pivot:',       value: 'Always-On Cloud VPN provides unrestricted access to corporate network from compromised EC2 instance' },
+      { label: 'Path to Crown Jewel:', value: 'SaaS Bypass → SA Key → EC2 PwnKit Root → VPN Pivot → On-Prem SQL PII Exfiltration' },
+    ],
+  },
+  {
+    title: 'Shadow Asset + BOLA API + Privileged Container + AD NTLM Hash Dump',
+    severity: 'CRITICAL', resourceId: 'res-container-host', asset: 'container-host-uat-01',
+    mitre: 'T1590.001 → T1190 → T1611 → T1003.001',
+    items: [
+      { label: 'Asset Gap:',          value: 'UAT subdomain not in asset inventory — no security controls, monitoring, or authentication deployed (Qualys EASM)' },
+      { label: 'API Vulnerability:',  value: 'Broken Object Level Authorization on undocumented API endpoint — any user object accessible without checks (Qualys API Security)' },
+      { label: 'Container Risk:',     value: 'Privileged container runtime with host namespace access — breakout to underlying host is trivial (Qualys Container Security)' },
+      { label: 'Path to Crown Jewel:', value: 'Shadow DNS → BOLA Exploit → Web Shell → Container Escape → NTLM Hash → Domain Admin' },
+    ],
+  },
+  {
+    title: 'Vulnerable Library + Unscanned CI/CD + Pod IAM Write + Hybrid AD Sync',
+    severity: 'CRITICAL', resourceId: 'res-prod-k8s', asset: 'prod-k8s-cluster-eks-01',
+    mitre: 'T1195.001 → T1610 → T1528 → T1484.002',
+    items: [
+      { label: 'Supply Chain:',       value: 'Critical CVE in transitive npm dependency — undetected without SCA scanning gate in CI/CD pipeline (Qualys VMDR SCA)' },
+      { label: 'Pipeline Gap:',       value: 'No vulnerability or secret scan gate — vulnerable images deployed to production Kubernetes cluster unchecked (Qualys TotalCloud)' },
+      { label: 'IAM Privilege:',      value: 'Pod-attached IAM role has Write access to production — RCE/SSRF code exfiltrates credentials via IMDS (Qualys CSPM CIEM)' },
+      { label: 'Path to Crown Jewel:', value: 'Malicious Package → CI/CD → K8s Shell → Pod IAM → Entra Connect → On-Prem AD Domain Admin' },
     ],
   },
 ]
@@ -341,6 +597,10 @@ function ResourceDetailPanel({ resourceId, onClose, onSelectPath }) {
     'Database': '🗄️', 'Cloud Storage': '☁️', 'VPN': '🔐',
     'Endpoint': '💻', 'Domain Controller': '🏛️', 'Identity Store': '🔑',
     'Serverless': '⚡', 'IAM Role': '🔑', 'Server': '🖥️',
+    'SaaS Application': '☁️', 'Cloud Console': '🖥️', 'Web Asset': '🌐',
+    'Web Server': '🌐', 'Container Orchestration': '☸️', 'Software Package': '📦',
+    'CI/CD': '⚙️', 'Identity Federation': '🔗',
+    'PAM Appliance': '🔐', 'Credential Vault': '🔒', 'Backup System': '💾',
   }
 
   return (
@@ -365,10 +625,10 @@ function ResourceDetailPanel({ resourceId, onClose, onSelectPath }) {
 
         {/* Resource metadata */}
         <div className="p-4 border-b border-slate-700">
-          <div className="flex items-start justify-between mb-1">
-            <div className="flex items-center gap-1.5">
-              <span className="text-base">{typeIcon[resource.type] || '🖥️'}</span>
-              <span className="text-xs font-mono font-semibold text-white">{resource.name}</span>
+          <div className="flex items-start justify-between gap-2 mb-1">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="text-base shrink-0">{typeIcon[resource.type] || '🖥️'}</span>
+              <span className="text-xs font-mono font-semibold text-white truncate" title={resource.name}>{resource.name}</span>
             </div>
             <SeverityBadge level={resource.severity} />
           </div>
@@ -391,8 +651,8 @@ function ResourceDetailPanel({ resourceId, onClose, onSelectPath }) {
               { label: 'Services',      value: resource.services },
             ].map(item => (
               <div key={item.label} className="flex gap-2 text-[10px]">
-                <span className="text-slate-400 font-medium w-24 shrink-0">{item.label}</span>
-                <span className="text-slate-200 font-mono">{item.value}</span>
+                <span className="text-slate-400 font-medium w-20 shrink-0">{item.label}</span>
+                <span className="text-slate-200 font-mono break-all">{item.value}</span>
               </div>
             ))}
           </div>
@@ -451,18 +711,20 @@ function DiscoverTab({ onSelectPath, onOpenResource }) {
   const [searchQuery, setSearchQuery]       = useState('')
 
   const stats = [
-    { label: 'Total Paths',          value: '14', icon: GitBranch,    color: 'text-white'  },
-    { label: 'Critical Paths',       value: '5',  icon: AlertTriangle, color: 'text-red-600'   },
-    { label: 'Avg Risk Score',       value: '73', icon: TrendingUp,    color: 'text-orange-600' },
-    { label: 'Crown Jewels at Risk', value: '2',  icon: Target,        color: 'text-purple-600' },
-    { label: 'Entry Points',         value: '4',  icon: Zap,           color: 'text-blue-400'   },
+    { label: 'Total Paths',          value: '10', icon: GitBranch,     color: 'text-white'       },
+    { label: 'Critical Paths',       value: '8',  icon: AlertTriangle,  color: 'text-red-600'     },
+    { label: 'Avg Risk Score',       value: '93', icon: TrendingUp,     color: 'text-orange-600'  },
+    { label: 'Crown Jewels at Risk', value: '7',  icon: Target,         color: 'text-purple-600'  },
+    { label: 'Entry Points',         value: '6',  icon: Zap,            color: 'text-blue-400'    },
   ]
 
   const entryPoints = [
-    { label: 'Internet / Web API',  count: 6 },
-    { label: 'S3 / Cloud Storage',  count: 3 },
-    { label: 'VPN Entry',           count: 3 },
-    { label: 'Lambda / Serverless', count: 2 },
+    { label: 'Internet / Web API',    count: 4 },
+    { label: 'VPN Entry',             count: 2 },
+    { label: 'SaaS / Cloud Tenant',   count: 1 },
+    { label: 'Shadow IT / EASM',      count: 1 },
+    { label: 'Supply Chain / Library',count: 1 },
+    { label: 'Lambda / Serverless',   count: 1 },
   ]
 
   const filtered = ATTACK_PATHS.filter(p => {
@@ -501,7 +763,7 @@ function DiscoverTab({ onSelectPath, onOpenResource }) {
             <div className="mb-3">
               <div className="text-[10px] text-slate-400 font-medium uppercase tracking-wider mb-2">Severity</div>
               <div className="space-y-1">
-                {[['all','All',14],['CRITICAL','Critical',5],['HIGH','High',7],['MEDIUM','Medium',2]].map(([val,label,count]) => (
+                {[['all','All',10],['CRITICAL','Critical',8],['HIGH','High',2],['MEDIUM','Medium',0]].map(([val,label,count]) => (
                   <button
                     key={val}
                     onClick={() => setSeverityFilter(val)}
@@ -547,7 +809,7 @@ function DiscoverTab({ onSelectPath, onOpenResource }) {
           <div className="p-3 border-b border-slate-700 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-sm font-semibold text-white">Attack Paths</span>
-              <span className="text-[11px] bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full font-medium">{filtered.length} of 14</span>
+              <span className="text-[11px] bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full font-medium">{filtered.length} of {ATTACK_PATHS.length}</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="relative">
@@ -749,7 +1011,11 @@ function AnalyzeTab({ selectedPath, onSelectPath, onOpenResource, onNavigateToRe
           'API Gateway': '🖥️', 'Cache': '🗄️', 'Auth Service': '🔐',
           'Database': '💾', 'Cloud Storage': '☁️', 'VPN': '🔒',
           'Endpoint': '💻', 'Domain Controller': '🏛️', 'Identity Store': '🔑',
-          'Serverless': '⚡', 'IAM Role': '👤',
+          'Serverless': '⚡', 'IAM Role': '👤', 'Server': '🖥️',
+          'SaaS Application': '☁️', 'Cloud Console': '🖥️', 'Web Asset': '🌐',
+          'Web Server': '🌐', 'Container Orchestration': '☸️', 'Software Package': '📦',
+          'CI/CD': '⚙️', 'Identity Federation': '🔗',
+          'PAM Appliance': '🔐', 'Credential Vault': '🔒', 'Backup System': '💾',
         }
         const typeCounts = pathResources.reduce((acc, r) => {
           acc[r.type] = (acc[r.type] || 0) + 1
@@ -832,7 +1098,7 @@ function AnalyzeTab({ selectedPath, onSelectPath, onOpenResource, onNavigateToRe
         <p className="text-[10px] text-indigo-300 mb-4 flex items-center gap-1">
           <ArrowRight className="w-3 h-3" /> Click any edge arrow to inspect the security gap · Hover any node for asset metadata
         </p>
-        <div className="flex items-center gap-0 overflow-x-auto pb-20">
+        <div className="flex items-center gap-0 overflow-x-auto pb-44">
           {selectedPath.flowNodes.map((node, i) => {
             const sharedPathCount = node.resourceId ? getPathsByResourceId(node.resourceId).length : 0
             const isShared = sharedPathCount > 1
@@ -879,9 +1145,15 @@ function AnalyzeTab({ selectedPath, onSelectPath, onOpenResource, onNavigateToRe
                       In {sharedPathCount} paths
                     </button>
                   )}
-                  {/* Hover metadata tooltip — appears below node to avoid overflow clipping */}
+                  {/* Hover metadata tooltip — smart horizontal positioning to avoid overflow clipping */}
                   {hoveredNode === node.resourceId && resource && (
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 z-20 w-52 bg-slate-800 border border-slate-700 rounded-lg shadow-xl p-2.5 text-left pointer-events-none">
+                    <div className={`absolute top-full mt-2 z-20 w-52 bg-slate-800 border border-slate-700 rounded-lg shadow-xl p-2.5 text-left pointer-events-none ${
+                      i < Math.ceil(selectedPath.flowNodes.length / 3)
+                        ? 'left-0'
+                        : i >= Math.floor(2 * selectedPath.flowNodes.length / 3)
+                          ? 'right-0'
+                          : 'left-1/2 -translate-x-1/2'
+                    }`}>
                       <div className="text-[11px] font-semibold text-white mb-1.5 font-mono truncate">{resource.name}</div>
                       <div className="space-y-1">
                         {[
