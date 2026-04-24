@@ -5,7 +5,8 @@ import {
   GitBranch, ChevronRight, Filter, Clock, Target, Zap, Eye,
   Wrench, CheckCircle, XCircle, AlertCircle, ShieldAlert,
   TrendingUp, RefreshCw, Ticket, EyeOff, User, Server, Cloud,
-  Link2, X
+  Link2, X, Globe, Activity, Cpu, Key, Sliders, Wifi, Layers,
+  Tag, Settings2
 } from 'lucide-react'
 
 // ─── Severity Badge ──────────────────────────────────────────────────────────
@@ -76,7 +77,11 @@ const RESOURCES = [
   { id: 'res-cred-vault',     name: 'pam-credential-vault-prod-01', type: 'Credential Vault',       severity: 'CRITICAL', exploitability: 'Critical', os: 'BeyondTrust Vault / CyberArk',         criticality: 'Mission Critical', ports: '443, 8443',     services: 'PAM Credential Vault — all privileged account passwords stored (Qualys CSAM + PC)' },
   { id: 'res-crown-dbs',      name: 'core-dbs-backup-prod-cluster', type: 'Backup System',          severity: 'CRITICAL', exploitability: 'High',     os: 'Windows Server 2022 / SQL + Veeam',    criticality: 'Mission Critical', ports: '1433, 9392',    services: 'Core Databases + Backup Systems — ransomware / exfiltration target (Qualys VMDR + EDR)' },
   // ── New resources for Path 6003: VPN Brute-Force → AD Takeover ───────────────
-  { id: 'res-win-server-unpatched', name: 'win-srv-2019-legacy-01', type: 'Server', severity: 'CRITICAL', exploitability: 'Critical', os: 'Windows Server 2019 (unpatched)', criticality: 'High', ports: '445, 3389, 135', services: 'Legacy Windows Server — MS17-010 (EternalBlue) unpatched, NTLMv1 enabled (Qualys VMDR)' },
+  { id: 'res-win-server-unpatched', name: 'win-srv-2019-legacy-01',      type: 'Server',                 severity: 'CRITICAL', exploitability: 'Critical', os: 'Windows Server 2019 (unpatched)',          criticality: 'High',             ports: '445, 3389, 135',  services: 'Legacy Windows Server — MS17-010 (EternalBlue) unpatched, NTLMv1 enabled (Qualys VMDR)' },
+  // ── New resources for Path 7004: Shadow API RCE → Container Escape → AD Takeover
+  { id: 'res-struts-appserver',     name: 'app-srv-struts-uat-01',       type: 'Web Server',             severity: 'CRITICAL', exploitability: 'Critical', os: 'Apache Struts 2.5.30 / Tomcat 9',         criticality: 'High',             ports: '8080, 443',       services: 'Apache Struts App — CVE-2023-50164 file upload RCE (Qualys VMDR + FIM)' },
+  { id: 'res-runc-container',       name: 'container-runc-uat-01',       type: 'Container Orchestration',severity: 'CRITICAL', exploitability: 'Critical', os: 'Docker 20.10 / runc 1.0.0-rc10',          criticality: 'Mission Critical', ports: '2375, 8080',      services: 'Container Runtime — CVE-2019-5736 runc escape, host binary overwrite (Qualys Container Security)' },
+  { id: 'res-host-root',            name: 'container-host-root-uat-01',  type: 'Server',                 severity: 'CRITICAL', exploitability: 'Critical', os: 'Ubuntu 22.04 LTS / Linux 5.15',           criticality: 'Mission Critical', ports: '22, 445',         services: 'Container Host — root access, LSASS/Kerberos credential material in memory (Qualys Multi-Vector EDR)' },
 ]
 
 // ─── Many-to-many helpers ─────────────────────────────────────────────────────
@@ -274,6 +279,43 @@ const ATTACK_PATHS = [
       { priority: 'MEDIUM',   action: 'Audit Entra ID Connect configuration — restrict password writeback to privileged accounts and enable sync activity alerting (Qualys PC)',  effort: 'Medium', eta: '2 days',  roi: 4.2, resourceId: 'res-hybrid-ad' },
     ],
   },
+  // ── Path 7004: Shadow API RCE → Container Escape → AD Takeover ───────────────
+  {
+    id: 7004,
+    title: 'Shadow API Breach — RCE Chain & Container Escape to Full Domain Compromise',
+    severity: 'CRITICAL',
+    entry: 'UAT Dev Environment (DNS Enumeration)',
+    target: 'Active Directory (Domain Admin — Full Enterprise Compromise)',
+    hops: 6, gaps: 5, score: 97,
+    resourceIds: ['res-shadow-subdomain', 'res-shadow-api', 'res-struts-appserver', 'res-runc-container', 'res-host-root', 'res-domain-ctrl'],
+    mitre: 'T1590.001 → T1190 → T1505.003 → T1611 → T1003.001 → T1550.002',
+    path: 'UAT Subdomain → BOLA Shadow API → CVE-2023-50164 RCE + Web Shell → CVE-2019-5736 Container Escape → NTLM/Kerberos Dump → Domain Admin (Pass-the-Hash / Zerologon)',
+    status: 'open',
+    flowNodes: [
+      { label: 'UAT Dev Environment', icon: '🌐', severity: null,       isStart: true,                          resourceId: 'res-shadow-subdomain' },
+      { label: 'Shadow API (BOLA)',   icon: '🖥️', severity: 'HIGH',     edge: 'DNS Enumeration + BOLA',         resourceId: 'res-shadow-api' },
+      { label: 'RCE + Web Shell',     icon: '🦠', severity: 'CRITICAL', edge: 'CVE-2023-50164 File Upload',     resourceId: 'res-struts-appserver' },
+      { label: 'Container Escape',    icon: '☸️', severity: 'CRITICAL', edge: 'CVE-2019-5736 runc Overwrite',   resourceId: 'res-runc-container' },
+      { label: 'Credential Dump',     icon: '🔑', severity: 'CRITICAL', edge: 'Host Root → LSASS/Kerberos',    resourceId: 'res-host-root' },
+      { label: 'Domain Admin',        icon: null,  severity: 'CRITICAL', edge: 'Pass-the-Hash / Zerologon',     resourceId: 'res-domain-ctrl', isCrown: true },
+    ],
+    gaps_detail: [
+      { label: 'Unmonitored UAT:',       value: 'uat-api.dev.domain.com externally accessible via DNS brute-force — not in asset inventory, no WAF or authentication controls, monitored below production standard (Qualys EASM)' },
+      { label: 'BOLA on Shadow API:',    value: 'Undocumented API endpoint lacks object-level authorization — attacker manipulates object IDs to access other users\' data, exposes backend structure and internal identifiers (Qualys API Security)' },
+      { label: 'CVE-2023-50164 RCE:',   value: 'Apache Struts 2 vulnerable file upload mechanism exploited to achieve Remote Code Execution — web shell deployed for persistent command execution without any user interaction (Qualys VMDR + FIM)' },
+      { label: 'CVE-2019-5736 Escape:', value: 'Container running runc ≤1.0-rc6 — attacker overwrites host runc binary to escape container and gain root on the underlying host, collapsing all container isolation (Qualys Container Security)' },
+      { label: 'Credential Exposure:',  value: 'Host root access enables LSASS memory read and Kerberos ticket extraction — NTLM hashes and TGTs harvested for Pass-the-Hash / Pass-the-Ticket and potential Zerologon (CVE-2020-1472) escalation (Qualys Multi-Vector EDR)' },
+    ],
+    remediation: [
+      { priority: 'CRITICAL', action: 'Run Qualys EASM continuous discovery — immediately catalogue and gate all externally reachable UAT/dev subdomains; enforce asset registration before any environment goes live',                                       effort: 'Low',    eta: '4 hours', roi: 9.7, resourceId: 'res-shadow-subdomain' },
+      { priority: 'CRITICAL', action: 'Deploy Qualys API Security — enforce object-level authorization on every API endpoint, build complete shadow API inventory, and block undocumented endpoints at the API gateway',                                     effort: 'Medium', eta: '2 days',  roi: 8.9, resourceId: 'res-shadow-api' },
+      { priority: 'CRITICAL', action: 'Patch CVE-2023-50164 (Apache Struts file upload RCE) via Qualys VMDR patch management — enforce strict server-side file type validation and deploy FIM to alert on any unauthorized writes to web directories',      effort: 'Low',    eta: '1 day',   roi: 9.4, resourceId: 'res-struts-appserver' },
+      { priority: 'CRITICAL', action: 'Upgrade runc to ≥1.0-rc7 to patch CVE-2019-5736 — enforce read-only container filesystems, drop all Linux capabilities, apply seccomp profiles and Qualys Container Security runtime policy to all workloads',     effort: 'Medium', eta: '2 days',  roi: 8.6, resourceId: 'res-runc-container' },
+      { priority: 'HIGH',     action: 'Deploy Qualys Multi-Vector EDR on all container hosts — enable LSASS protection, Credential Guard, and alert on Kerberos ticket anomalies and Pass-the-Hash lateral movement patterns',                             effort: 'High',   eta: '5 days',  roi: 6.3, resourceId: 'res-host-root' },
+      { priority: 'HIGH',     action: 'Patch CVE-2020-1472 (Zerologon) on all domain controllers and enforce Secure Channel enforcement mode — add Domain Controllers to Protected Users group and enable DC shadow detection (Qualys VMDR + Policy Compliance)', effort: 'Low', eta: '4 hours', roi: 8.8, resourceId: 'res-domain-ctrl' },
+      { priority: 'MEDIUM',   action: 'Enforce network micro-segmentation — block all direct connectivity between UAT/dev environments and production AD; require explicit jump-host with MFA and session recording for any cross-segment access',           effort: 'High',   eta: '1 week',  roi: 4.5, resourceId: null },
+    ],
+  },
   // ── Existing paths ───────────────────────────────────────────────────────────
   {
     id: 5014,
@@ -446,7 +488,9 @@ const SCORING_ITEMS = [
   { asset: 'Windows Server (Legacy)', resourceId: 'res-win-server-unpatched', reason: 'MS17-010 Unpatched + Shared Local Admin + NTLMv1 + No Credential Guard (+27%)',                       base: 68, adjusted: 95,  delta: '+27%', positive: true  },
   { asset: 'Shadow API',        resourceId: 'res-shadow-api',    reason: 'BOLA + Unmanaged Asset + No FIM + Container Escape Path (+28%)',                       base: 67, adjusted: 96,  delta: '+28%', positive: true  },
   { asset: 'Cloud Mgmt Console',resourceId: 'res-cloud-mgmt-a', reason: 'Hardcoded SA Key + SaaS MFA Bypass + Direct VPN Pivot to Corp Net (+26%)',             base: 70, adjusted: 95,  delta: '+26%', positive: true  },
-  { asset: 'Prod K8s Cluster',  resourceId: 'res-prod-k8s',     reason: 'Unscanned Supply Chain + Over-Privileged Pod IAM + Hybrid AD Sync Path (+25%)',        base: 68, adjusted: 93,  delta: '+25%', positive: true  },
+  { asset: 'Prod K8s Cluster',  resourceId: 'res-prod-k8s',         reason: 'Unscanned Supply Chain + Over-Privileged Pod IAM + Hybrid AD Sync Path (+25%)',         base: 68, adjusted: 93,  delta: '+25%', positive: true  },
+  { asset: 'Apache Struts Server', resourceId: 'res-struts-appserver', reason: 'CVE-2023-50164 RCE + Shadow API Entry + Container Escape Chain + AD Path (+30%)',         base: 69, adjusted: 98,  delta: '+30%', positive: true  },
+  { asset: 'runc Container Host',  resourceId: 'res-runc-container',   reason: 'CVE-2019-5736 Container Escape + Host Root + Credential Dump + Domain Path (+28%)',        base: 70, adjusted: 97,  delta: '+28%', positive: true  },
 ]
 
 const TOXIC_COMBOS = [
@@ -536,6 +580,17 @@ const TOXIC_COMBOS = [
       { label: 'Pipeline Gap:',       value: 'No vulnerability or secret scan gate — vulnerable images deployed to production Kubernetes cluster unchecked (Qualys TotalCloud)' },
       { label: 'IAM Privilege:',      value: 'Pod-attached IAM role has Write access to production — RCE/SSRF code exfiltrates credentials via IMDS (Qualys CSPM CIEM)' },
       { label: 'Path to Crown Jewel:', value: 'Malicious Package → CI/CD → K8s Shell → Pod IAM → Entra Connect → On-Prem AD Domain Admin' },
+    ],
+  },
+  {
+    title: 'Shadow API BOLA + CVE-2023-50164 RCE + CVE-2019-5736 Container Escape + Zerologon',
+    severity: 'CRITICAL', resourceId: 'res-struts-appserver', asset: 'app-srv-struts-uat-01',
+    mitre: 'T1590.001 → T1190 → T1505.003 → T1611 → T1003.001 → T1550.002',
+    items: [
+      { label: 'API Flaw:',           value: 'BOLA on undocumented shadow API endpoint — no object-level authorization, exposes backend structure and all user records (Qualys API Security)' },
+      { label: 'RCE Exploit:',        value: 'CVE-2023-50164 Apache Struts file upload RCE — web shell deployed for persistent remote execution without any credentials (Qualys VMDR + FIM)' },
+      { label: 'Container Escape:',   value: 'CVE-2019-5736 runc overwrite — container isolation completely bypassed, host root access achieved in seconds (Qualys Container Security)' },
+      { label: 'Path to Crown Jewel:', value: 'DNS Enum → BOLA API → Struts RCE → runc Escape → LSASS Dump → Pass-the-Hash / Zerologon → Full Domain Admin' },
     ],
   },
 ]
@@ -711,10 +766,10 @@ function DiscoverTab({ onSelectPath, onOpenResource }) {
   const [searchQuery, setSearchQuery]       = useState('')
 
   const stats = [
-    { label: 'Total Paths',          value: '10', icon: GitBranch,     color: 'text-white'       },
-    { label: 'Critical Paths',       value: '8',  icon: AlertTriangle,  color: 'text-red-600'     },
-    { label: 'Avg Risk Score',       value: '93', icon: TrendingUp,     color: 'text-orange-600'  },
-    { label: 'Crown Jewels at Risk', value: '7',  icon: Target,         color: 'text-purple-600'  },
+    { label: 'Total Paths',          value: '11', icon: GitBranch,     color: 'text-white'       },
+    { label: 'Critical Paths',       value: '9',  icon: AlertTriangle,  color: 'text-red-600'     },
+    { label: 'Avg Risk Score',       value: '94', icon: TrendingUp,     color: 'text-orange-600'  },
+    { label: 'Crown Jewels at Risk', value: '8',  icon: Target,         color: 'text-purple-600'  },
     { label: 'Entry Points',         value: '6',  icon: Zap,            color: 'text-blue-400'    },
   ]
 
@@ -763,7 +818,7 @@ function DiscoverTab({ onSelectPath, onOpenResource }) {
             <div className="mb-3">
               <div className="text-[10px] text-slate-400 font-medium uppercase tracking-wider mb-2">Severity</div>
               <div className="space-y-1">
-                {[['all','All',10],['CRITICAL','Critical',8],['HIGH','High',2],['MEDIUM','Medium',0]].map(([val,label,count]) => (
+                {[['all','All',11],['CRITICAL','Critical',9],['HIGH','High',2],['MEDIUM','Medium',0]].map(([val,label,count]) => (
                   <button
                     key={val}
                     onClick={() => setSeverityFilter(val)}
@@ -1660,6 +1715,1082 @@ function RemediateTab({ selectedPath, onSelectPath, onOpenResource }) {
   )
 }
 
+// ─── InitialConfigurationTab (step wizard) ────────────────────────────────────
+function InitialConfigurationTab() {
+  const [step, setStep] = useState(0)
+  const [completedSteps, setCompletedSteps] = useState(new Set())
+
+  const [crownJewelPresets, setCrownJewelPresets] = useState([
+    { id: 'preset-dc',   label: 'Domain Controllers',      desc: 'Tier-0 AD / Kerberos',             on: true  },
+    { id: 'preset-pci',  label: 'PCI Payment Gateways',    desc: 'Cardholder data scope',             on: true  },
+    { id: 'preset-db',   label: 'Production Databases',    desc: 'PII / financial data stores',       on: true  },
+    { id: 'preset-pam',  label: 'PAM / Credential Vaults', desc: 'BeyondTrust, CyberArk, HashiCorp',  on: true  },
+    { id: 'preset-iam',  label: 'IAM Control Planes',      desc: 'AWS Root, Azure Tenant Admin',      on: false },
+    { id: 'preset-k8s',  label: 'Prod K8s Clusters',       desc: 'EKS / AKS control plane',           on: false },
+    { id: 'preset-cicd', label: 'CI/CD Pipelines',         desc: 'Jenkins, GitHub Actions runners',   on: false },
+    { id: 'preset-aiml', label: 'ML Model Registries',     desc: 'SageMaker, Azure ML, MLflow',       on: false },
+  ])
+  const [customJewels,     setCustomJewels]     = useState([])
+  const [customJewelInput, setCustomJewelInput] = useState('')
+  const [customJewelType,  setCustomJewelType]  = useState('Database')
+
+  const [policyToggles, setPolicyToggles] = useState([
+    { id: 'cisaKev',    label: 'CISA KEV Vulnerabilities',    desc: 'Auto-create remediation tickets for known exploited CVEs',      risk: 'HIGH',   on: true  },
+    { id: 'nonProd',    label: 'Non-Production Environments', desc: 'Apply compensating controls to UAT / dev assets automatically', risk: 'MEDIUM', on: false },
+    { id: 'shadowIt',   label: 'Shadow IT / EASM Findings',   desc: 'Auto-quarantine unmanaged assets exceeding risk threshold',     risk: 'HIGH',   on: true  },
+    { id: 'mfaEnforce', label: 'MFA Enforcement (Weak Auth)', desc: 'Auto-push MFA policy to accounts missing 2FA via ISPM',        risk: 'LOW',    on: true  },
+    { id: 'patchVerif', label: 'Patch-Verified Remediations', desc: 'Auto-close findings after VMDR confirms patch applied',        risk: 'LOW',    on: false },
+    { id: 'credGuard',  label: 'Credential Guard Rollout',    desc: 'Auto-deploy Credential Guard GPO to unprotected endpoints',    risk: 'MEDIUM', on: false },
+  ])
+
+  const [domains,     setDomains]     = useState(['acme.com', 'acme-corp.io'])
+  const [domainInput, setDomainInput] = useState('')
+
+  const STEPS = [
+    { title: 'Sensor Fabric Activation', icon: Wifi,   desc: 'Connect your data collection integrations' },
+    { title: 'Identity & Domain Sync',   icon: Users,  desc: 'Sync AD, IAM, and cloud identity sources' },
+    { title: 'Crown Jewel Selector',     icon: Target, desc: 'Tag mission-critical assets for priority scoring' },
+    { title: 'External Surface Mapping', icon: Globe,  desc: 'Configure EASM root domains for asset discovery' },
+    { title: 'Autonomous Policy Opt-in', icon: Zap,    desc: 'Define risk categories for ETM auto-remediation' },
+  ]
+
+  const sensors = [
+    { id: 'wiz',   label: 'Wiz Connector',   product: 'Wiz (3rd party)',  icon: Layers,   status: 'connected', count: '5,841 resources', detail: 'Last sync: 6 min ago — AWS + Azure workloads' },
+    { id: 'aqua',  label: 'Aqua Connector',  product: 'Aqua Security',    icon: Shield,   status: 'connected', count: '312 images',      detail: 'Last scan: 12 min ago — container image registry' },
+    { id: 'vmdr',  label: 'VMDR Agents',     product: 'Qualys VMDR',      icon: Cpu,      status: 'connected', count: '2,847 agents',    detail: 'Last sync: 3 min ago' },
+    { id: 'easm',  label: 'EASM Discovery',  product: 'Qualys EASM',      icon: Globe,    status: 'connected', count: '14,203 assets',   detail: 'Continuous crawl active' },
+    { id: 'aws',   label: 'AWS Connector',   product: 'AWS / CSPM',       icon: Cloud,    status: 'connected', count: '3,412 resources', detail: 'us-east-1, eu-west-1' },
+    { id: 'azure', label: 'Azure Connector', product: 'Azure / CSPM',     icon: Cloud,    status: 'warning',   count: '891 resources',   detail: 'Missing: Storage + Key Vault scopes' },
+    { id: 'edr',   label: 'EDR / FIM',       product: 'Multi-Vector EDR', icon: Activity, status: 'connected', count: '1,203 endpoints', detail: 'FIM + process monitoring active' },
+  ]
+
+  const identityConnectors = [
+    { id: 'ad',      label: 'Active Directory',   product: 'Qualys ISPM', icon: Users, status: 'connected',    detail: 'acme.corp — 4,821 users, 312 groups',        syncedAt: '8 min ago'  },
+    { id: 'entra',   label: 'Microsoft Entra ID', product: 'Qualys ISPM', icon: Cloud, status: 'connected',    detail: 'Entra Connect — password writeback: ON',     syncedAt: '8 min ago'  },
+    { id: 'aws-iam', label: 'AWS IAM',            product: 'Qualys CIEM', icon: Key,   status: 'warning',      detail: '847 roles — 37% carry AdministratorAccess',  syncedAt: '15 min ago' },
+    { id: 'gcp-iam', label: 'GCP IAM',            product: 'Qualys CIEM', icon: Key,   status: 'disconnected', detail: 'Service account not configured',              syncedAt: null         },
+  ]
+
+  const statusConfig = {
+    connected:    { color: 'text-emerald-400', dot: 'bg-emerald-400', label: 'Connected',       border: 'border-emerald-700/40', pulse: true  },
+    warning:      { color: 'text-amber-400',   dot: 'bg-amber-400',   label: 'Needs Attention', border: 'border-amber-700/40',   pulse: false },
+    disconnected: { color: 'text-slate-500',   dot: 'bg-slate-600',   label: 'Disconnected',    border: 'border-slate-700/40',   pulse: false },
+  }
+
+  const riskColor = {
+    HIGH:   'text-red-400 bg-red-900/30 border-red-700/40',
+    MEDIUM: 'text-amber-400 bg-amber-900/30 border-amber-700/40',
+    LOW:    'text-emerald-400 bg-emerald-900/30 border-emerald-700/40',
+  }
+
+  const toggleCrown     = (id) => setCrownJewelPresets(p => p.map(x => x.id === id ? { ...x, on: !x.on } : x))
+  const togglePolicy    = (id) => setPolicyToggles(p => p.map(x => x.id === id ? { ...x, on: !x.on } : x))
+  const addDomain       = ()   => { if (domainInput.trim() && !domains.includes(domainInput.trim())) { setDomains(d => [...d, domainInput.trim()]); setDomainInput('') } }
+  const removeDomain    = (d)  => setDomains(prev => prev.filter(x => x !== d))
+  const addCustomJewel  = ()   => { if (customJewelInput.trim()) { setCustomJewels(prev => [...prev, { id: `cj-${Date.now()}`, label: customJewelInput.trim(), type: customJewelType }]); setCustomJewelInput('') } }
+  const removeCustomJewel = (id) => setCustomJewels(prev => prev.filter(x => x.id !== id))
+
+  const goNext = () => { setCompletedSteps(s => new Set([...s, step])); if (step < STEPS.length - 1) setStep(s => s + 1) }
+  const goBack = () => setStep(s => Math.max(s - 1, 0))
+
+  const renderStepContent = () => {
+    switch (step) {
+
+      case 0: return (
+        <div className="space-y-2">
+          {sensors.map(sensor => {
+            const sc = statusConfig[sensor.status]
+            const Icon = sensor.icon
+            return (
+              <div key={sensor.id} className={`flex items-center gap-3 p-3 rounded-lg bg-slate-900/50 border ${sc.border}`}>
+                <div className="w-8 h-8 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center shrink-0">
+                  <Icon className="w-4 h-4 text-slate-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[12px] font-medium text-white">{sensor.label}</span>
+                    <span className="text-[10px] text-slate-500">{sensor.product}</span>
+                  </div>
+                  <div className="text-[11px] text-slate-400">{sensor.detail}</div>
+                </div>
+                <div className="text-right shrink-0">
+                  <div className={`text-[11px] font-semibold ${sc.color}`}>{sensor.count}</div>
+                  <div className="flex items-center gap-1 justify-end mt-0.5">
+                    <div className={`w-1.5 h-1.5 rounded-full ${sc.dot} ${sc.pulse ? 'animate-pulse' : ''}`} />
+                    <span className={`text-[10px] ${sc.color}`}>{sc.label}</span>
+                  </div>
+                </div>
+                {sensor.status === 'warning' && (
+                  <button className="ml-1 px-2.5 py-1 bg-amber-700/60 hover:bg-amber-700 text-amber-200 text-[10px] rounded font-medium transition-colors shrink-0">Fix</button>
+                )}
+              </div>
+            )
+          })}
+          <button className="w-full mt-1 py-2.5 rounded-lg border border-dashed border-teal-700/50 text-[11px] text-teal-400 hover:bg-teal-900/20 transition-colors flex items-center justify-center gap-1.5">
+            <Plus className="w-3.5 h-3.5" /> Add New Sensor
+          </button>
+        </div>
+      )
+
+      case 1: return (
+        <div className="space-y-2">
+          {identityConnectors.map(conn => {
+            const sc = statusConfig[conn.status]
+            const Icon = conn.icon
+            return (
+              <div key={conn.id} className={`flex items-center gap-3 p-3 rounded-lg bg-slate-900/50 border ${sc.border}`}>
+                <div className="w-8 h-8 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center shrink-0">
+                  <Icon className="w-4 h-4 text-slate-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[12px] font-medium text-white">{conn.label}</span>
+                    <span className="text-[10px] text-slate-500">{conn.product}</span>
+                  </div>
+                  <div className="text-[11px] text-slate-400">{conn.detail}</div>
+                </div>
+                <div className="text-right shrink-0">
+                  {conn.syncedAt && <div className="text-[10px] text-slate-500 mb-0.5">{conn.syncedAt}</div>}
+                  <div className="flex items-center gap-1 justify-end">
+                    <div className={`w-1.5 h-1.5 rounded-full ${sc.dot}`} />
+                    <span className={`text-[10px] ${sc.color}`}>{sc.label}</span>
+                  </div>
+                </div>
+                {conn.status === 'disconnected' && (
+                  <button className="ml-1 px-2.5 py-1 bg-indigo-700 hover:bg-indigo-600 text-white text-[10px] rounded font-medium transition-colors shrink-0">Connect</button>
+                )}
+              </div>
+            )
+          })}
+          <button className="w-full mt-1 py-2.5 rounded-lg border border-dashed border-purple-700/50 text-[11px] text-purple-400 hover:bg-purple-900/20 transition-colors flex items-center justify-center gap-1.5">
+            <Plus className="w-3.5 h-3.5" /> Add Identity Source
+          </button>
+        </div>
+      )
+
+      case 2: return (
+        <div>
+          <div className="space-y-1.5 mb-4">
+            {crownJewelPresets.map(preset => (
+              <div key={preset.id} onClick={() => toggleCrown(preset.id)}
+                className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all
+                  ${preset.on ? 'bg-yellow-900/10 border-yellow-700/40' : 'bg-slate-900/40 border-slate-700/60 hover:border-slate-600'}`}>
+                <div className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${preset.on ? 'bg-yellow-500 border-yellow-500' : 'border-slate-600'}`}>
+                  {preset.on && <CheckCircle className="w-3 h-3 text-slate-900" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className={`text-[12px] font-medium ${preset.on ? 'text-yellow-200' : 'text-slate-300'}`}>{preset.label}</div>
+                  <div className="text-[10px] text-slate-500">{preset.desc}</div>
+                </div>
+                {preset.on && <span className="text-[9px] bg-yellow-900/40 text-yellow-400 border border-yellow-700/40 px-1.5 py-0.5 rounded font-semibold shrink-0">CROWN JEWEL</span>}
+              </div>
+            ))}
+          </div>
+          <div className="border-t border-slate-700 pt-4">
+            <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mb-2">Manually Tag an Asset</div>
+            <div className="flex gap-2 mb-2">
+              <input type="text" value={customJewelInput} onChange={e => setCustomJewelInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && addCustomJewel()}
+                placeholder="Hostname or asset name"
+                className="flex-1 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-[11px] text-white placeholder-slate-500 focus:outline-none focus:border-yellow-500" />
+              <select value={customJewelType} onChange={e => setCustomJewelType(e.target.value)}
+                className="bg-slate-900 border border-slate-600 rounded-lg px-2 py-2 text-[11px] text-white focus:outline-none focus:border-yellow-500">
+                <option>Database</option><option>Domain Controller</option><option>Application Server</option>
+                <option>Network Device</option><option>PAM / Vault</option><option>Cloud Resource</option><option>Custom</option>
+              </select>
+              <button onClick={addCustomJewel} className="px-3 py-2 bg-yellow-700 hover:bg-yellow-600 text-white text-[11px] rounded-lg font-medium transition-colors">+ Tag</button>
+            </div>
+            {customJewels.length === 0 ? (
+              <div className="text-center py-4 text-[10px] text-slate-600 border border-dashed border-slate-700 rounded-lg">No custom assets tagged yet</div>
+            ) : (
+              <div className="space-y-1.5">
+                {customJewels.map(jewel => (
+                  <div key={jewel.id} className="flex items-center gap-2 p-2.5 bg-yellow-900/10 border border-yellow-700/40 rounded-lg">
+                    <Target className="w-3.5 h-3.5 text-yellow-400 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[12px] font-medium text-yellow-200 truncate">{jewel.label}</div>
+                      <div className="text-[10px] text-slate-500">{jewel.type}</div>
+                    </div>
+                    <span className="text-[9px] bg-yellow-900/40 text-yellow-400 border border-yellow-700/40 px-1.5 py-0.5 rounded font-semibold">CROWN JEWEL</span>
+                    <button onClick={() => removeCustomJewel(jewel.id)} className="text-slate-600 hover:text-red-400 transition-colors"><X className="w-3.5 h-3.5" /></button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )
+
+      case 3: return (
+        <div>
+          <div className="flex gap-2 mb-3">
+            <input type="text" value={domainInput} onChange={e => setDomainInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && addDomain()}
+              placeholder="Enter root domain (e.g. acme.com)"
+              className="flex-1 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-[11px] text-white placeholder-slate-500 focus:outline-none focus:border-blue-500" />
+            <button onClick={addDomain} className="px-4 py-2 bg-blue-700 hover:bg-blue-600 text-white text-[11px] rounded-lg font-medium transition-colors">Add Domain</button>
+          </div>
+          <div className="flex flex-wrap gap-2 mb-4">
+            {domains.map(d => (
+              <span key={d} className="flex items-center gap-1.5 bg-blue-900/30 border border-blue-700/40 text-blue-300 text-[11px] px-2.5 py-1.5 rounded-full font-medium">
+                <Globe className="w-3 h-3" />{d}
+                <button onClick={() => removeDomain(d)} className="text-blue-500 hover:text-red-400 transition-colors ml-0.5"><X className="w-2.5 h-2.5" /></button>
+              </span>
+            ))}
+          </div>
+          <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mb-2">Latest EASM Crawl Results</div>
+          <div className="space-y-3">
+            {[
+              { domain: 'acme.com',     subdomains: 847, shadow: 3, apis: 12, risk: 'HIGH'     },
+              { domain: 'acme-corp.io', subdomains: 203, shadow: 4, apis: 7,  risk: 'CRITICAL' },
+            ].map(r => (
+              <div key={r.domain} className="bg-slate-900/60 border border-slate-700/60 rounded-xl p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-[12px] font-semibold text-white">{r.domain}</span>
+                  <SeverityBadge level={r.risk} />
+                </div>
+                <div className="grid grid-cols-3 gap-3 text-center">
+                  <div className="bg-slate-800 rounded-lg p-2">
+                    <div className="text-[16px] font-bold text-white">{r.subdomains}</div>
+                    <div className="text-[10px] text-slate-400">Subdomains</div>
+                  </div>
+                  <div className="bg-red-900/20 rounded-lg p-2 border border-red-800/30">
+                    <div className="text-[16px] font-bold text-red-400">{r.shadow}</div>
+                    <div className="text-[10px] text-slate-400">Shadow IT</div>
+                  </div>
+                  <div className="bg-slate-800 rounded-lg p-2">
+                    <div className="text-[16px] font-bold text-white">{r.apis}</div>
+                    <div className="text-[10px] text-slate-400">APIs Found</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )
+
+      case 4: return (
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-[11px] text-slate-400">Select which risk categories the ETM engine acts on autonomously — "Fix It Safely"</p>
+            <span className="text-[10px] bg-red-900/30 text-red-400 border border-red-700/40 px-2 py-0.5 rounded-full font-medium shrink-0 ml-3">
+              {policyToggles.filter(p => p.on).length}/{policyToggles.length} active
+            </span>
+          </div>
+          <div className="space-y-2">
+            {policyToggles.map(policy => (
+              <div key={policy.id} onClick={() => togglePolicy(policy.id)}
+                className={`flex items-center gap-4 p-3.5 rounded-lg border cursor-pointer transition-all
+                  ${policy.on ? 'bg-indigo-900/20 border-indigo-700/50' : 'bg-slate-900/40 border-slate-700/50 hover:border-slate-600'}`}>
+                <div className={`relative w-9 h-5 rounded-full shrink-0 transition-colors duration-200 ${policy.on ? 'bg-indigo-600' : 'bg-slate-700'}`}>
+                  <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 ${policy.on ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className={`text-[12px] font-medium ${policy.on ? 'text-white' : 'text-slate-400'}`}>{policy.label}</span>
+                    <span className={`text-[9px] px-1.5 py-0.5 rounded border font-semibold ${riskColor[policy.risk]}`}>{policy.risk}</span>
+                  </div>
+                  <div className="text-[11px] text-slate-500">{policy.desc}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )
+
+      default: return null
+    }
+  }
+
+  const currentStep = STEPS[step]
+  const StepIcon    = currentStep.icon
+  const isLast      = step === STEPS.length - 1
+
+  return (
+    <div className="flex flex-col" style={{ minHeight: 0 }}>
+
+      {/* ── Step Indicator ────────────────────────────────────────── */}
+      <div className="bg-slate-800/60 border border-slate-700 rounded-xl p-4 mb-4 shrink-0">
+        <div className="flex items-start">
+          {STEPS.map((s, i) => {
+            const isDone    = completedSteps.has(i)
+            const isCurrent = i === step
+            const Icon      = s.icon
+            return (
+              <div key={i} className="flex items-start flex-1">
+                <div className="flex flex-col items-center flex-1">
+                  <button
+                    onClick={() => setStep(i)}
+                    className={`w-9 h-9 rounded-full border-2 flex items-center justify-center transition-all
+                      ${isDone    ? 'bg-emerald-600 border-emerald-500' :
+                        isCurrent ? 'bg-indigo-600 border-indigo-400 ring-2 ring-indigo-400/30' :
+                                    'bg-slate-800 border-slate-600 hover:border-slate-500'}`}>
+                    {isDone
+                      ? <CheckCircle className="w-4 h-4 text-white" />
+                      : <Icon className={`w-4 h-4 ${isCurrent ? 'text-white' : 'text-slate-500'}`} />
+                    }
+                  </button>
+                  <div className={`text-[9px] mt-1.5 font-medium text-center leading-tight max-w-[72px]
+                    ${isDone ? 'text-emerald-400' : isCurrent ? 'text-indigo-300' : 'text-slate-600'}`}>
+                    {s.title}
+                  </div>
+                </div>
+                {i < STEPS.length - 1 && (
+                  <div className={`h-0.5 w-8 mt-4 mx-0.5 shrink-0 transition-colors ${completedSteps.has(i) ? 'bg-emerald-600' : 'bg-slate-700'}`} />
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* ── Step Content Card ─────────────────────────────────────── */}
+      <div className="bg-slate-800/60 border border-slate-700 rounded-xl p-5 overflow-y-auto flex-1">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-8 h-8 rounded-lg bg-indigo-900/40 border border-indigo-700/40 flex items-center justify-center shrink-0">
+            <StepIcon className="w-4 h-4 text-indigo-400" />
+          </div>
+          <div>
+            <div className="text-[13px] font-semibold text-white">{currentStep.title}</div>
+            <div className="text-[11px] text-slate-400">{currentStep.desc}</div>
+          </div>
+          <div className="ml-auto text-[10px] text-slate-500 font-medium shrink-0">Step {step + 1} of {STEPS.length}</div>
+        </div>
+        {renderStepContent()}
+      </div>
+
+      {/* ── Navigation ────────────────────────────────────────────── */}
+      <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-700 shrink-0">
+        <button
+          onClick={goBack}
+          disabled={step === 0}
+          className="px-4 py-2 rounded-lg border border-slate-600 text-slate-300 text-[12px] font-medium hover:bg-slate-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-2">
+          <ChevronRight className="w-3.5 h-3.5 rotate-180" /> Back
+        </button>
+        <div className="flex gap-1.5 items-center">
+          {STEPS.map((_, i) => (
+            <button key={i} onClick={() => setStep(i)}
+              className={`h-2 rounded-full transition-all duration-200 ${i === step ? 'bg-indigo-400 w-5' : completedSteps.has(i) ? 'bg-emerald-500 w-2' : 'bg-slate-700 w-2'}`} />
+          ))}
+        </div>
+        {isLast ? (
+          <button
+            onClick={() => setCompletedSteps(new Set([0, 1, 2, 3, 4]))}
+            className="px-5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[12px] font-semibold transition-colors flex items-center gap-2">
+            <CheckCircle className="w-3.5 h-3.5" /> Complete Setup
+          </button>
+        ) : (
+          <button
+            onClick={goNext}
+            className="px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[12px] font-semibold transition-colors flex items-center gap-2">
+            Next <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+        )}
+      </div>
+
+    </div>
+  )
+}
+
+// ─── ConfigurationTab ──────────────────────────────────────────────────────────
+function ConfigurationTab() {
+  const [crownJewelPresets, setCrownJewelPresets] = useState([
+    { id: 'preset-dc',   label: 'Domain Controllers',     desc: 'Tier-0 AD / Kerberos',               on: true  },
+    { id: 'preset-pci',  label: 'PCI Payment Gateways',   desc: 'Cardholder data scope',               on: true  },
+    { id: 'preset-db',   label: 'Production Databases',   desc: 'PII / financial data stores',         on: true  },
+    { id: 'preset-pam',  label: 'PAM / Credential Vaults',desc: 'BeyondTrust, CyberArk, HashiCorp',    on: true  },
+    { id: 'preset-iam',  label: 'IAM Control Planes',     desc: 'AWS Root, Azure Tenant Admin',        on: false },
+    { id: 'preset-k8s',  label: 'Prod K8s Clusters',      desc: 'EKS / AKS control plane',             on: false },
+    { id: 'preset-cicd', label: 'CI/CD Pipelines',        desc: 'Jenkins, GitHub Actions runners',     on: false },
+    { id: 'preset-aiml', label: 'ML Model Registries',    desc: 'SageMaker, Azure ML, MLflow',         on: false },
+  ])
+  const [customJewels, setCustomJewels] = useState([])
+  const [customJewelInput, setCustomJewelInput] = useState('')
+  const [customJewelType, setCustomJewelType] = useState('Database')
+
+  const [policyToggles, setPolicyToggles] = useState([
+    { id: 'cisaKev',    label: 'CISA KEV Vulnerabilities',    desc: 'Auto-create remediation tickets for known exploited CVEs',       risk: 'HIGH',   on: true  },
+    { id: 'nonProd',    label: 'Non-Production Environments', desc: 'Apply compensating controls to UAT / dev assets automatically',  risk: 'MEDIUM', on: false },
+    { id: 'shadowIt',   label: 'Shadow IT / EASM Findings',   desc: 'Auto-quarantine unmanaged assets exceeding risk threshold',      risk: 'HIGH',   on: true  },
+    { id: 'mfaEnforce', label: 'MFA Enforcement (Weak Auth)', desc: 'Auto-push MFA policy to accounts missing 2FA via ISPM',         risk: 'LOW',    on: true  },
+    { id: 'patchVerif', label: 'Patch-Verified Remediations', desc: 'Auto-close findings after VMDR confirms patch applied',         risk: 'LOW',    on: false },
+    { id: 'credGuard',  label: 'Credential Guard Rollout',    desc: 'Auto-deploy Credential Guard GPO to unprotected endpoints',     risk: 'MEDIUM', on: false },
+  ])
+
+  const [domains, setDomains] = useState(['acme.com', 'acme-corp.io'])
+  const [domainInput, setDomainInput] = useState('')
+
+  const toggleCrown  = (id) => setCrownJewelPresets(p => p.map(x => x.id === id ? { ...x, on: !x.on } : x))
+  const togglePolicy = (id) => setPolicyToggles(p => p.map(x => x.id === id ? { ...x, on: !x.on } : x))
+  const addDomain    = () => {
+    if (domainInput.trim() && !domains.includes(domainInput.trim())) {
+      setDomains(d => [...d, domainInput.trim()])
+      setDomainInput('')
+    }
+  }
+  const removeDomain      = (d)  => setDomains(prev => prev.filter(x => x !== d))
+  const addCustomJewel    = ()   => {
+    if (customJewelInput.trim()) {
+      setCustomJewels(prev => [...prev, { id: `cj-${Date.now()}`, label: customJewelInput.trim(), type: customJewelType }])
+      setCustomJewelInput('')
+    }
+  }
+  const removeCustomJewel = (id) => setCustomJewels(prev => prev.filter(x => x.id !== id))
+
+  const sensors = [
+    { id: 'wiz',   label: 'Wiz Connector',    product: 'Wiz (3rd party)',    icon: Layers,   status: 'connected',    count: '5,841 resources', detail: 'Last sync: 6 min ago — AWS + Azure workloads' },
+    { id: 'aqua',  label: 'Aqua Connector',   product: 'Aqua Security',      icon: Shield,   status: 'connected',    count: '312 images',      detail: 'Last scan: 12 min ago — container image registry' },
+    { id: 'vmdr',  label: 'VMDR Agents',      product: 'Qualys VMDR',        icon: Cpu,      status: 'connected',    count: '2,847 agents',    detail: 'Last sync: 3 min ago' },
+    { id: 'easm',  label: 'EASM Discovery',   product: 'Qualys EASM',        icon: Globe,    status: 'connected',    count: '14,203 assets',   detail: 'Continuous crawl active' },
+    { id: 'aws',   label: 'AWS Connector',    product: 'AWS / CSPM',         icon: Cloud,    status: 'connected',    count: '3,412 resources', detail: 'us-east-1, eu-west-1' },
+    { id: 'azure', label: 'Azure Connector',  product: 'Azure / CSPM',       icon: Cloud,    status: 'warning',      count: '891 resources',   detail: 'Missing: Storage + Key Vault scopes' },
+    { id: 'edr',   label: 'EDR / FIM',        product: 'Multi-Vector EDR',   icon: Activity, status: 'connected',    count: '1,203 endpoints', detail: 'FIM + process monitoring active' },
+  ]
+
+  const identityConnectors = [
+    { id: 'ad',      label: 'Active Directory',   product: 'Qualys ISPM', icon: Users, status: 'connected',    detail: 'acme.corp — 4,821 users, 312 groups',          syncedAt: '8 min ago'  },
+    { id: 'entra',   label: 'Microsoft Entra ID', product: 'Qualys ISPM', icon: Cloud, status: 'connected',    detail: 'Entra Connect — password writeback: ON',       syncedAt: '8 min ago'  },
+    { id: 'aws-iam', label: 'AWS IAM',            product: 'Qualys CIEM', icon: Key,   status: 'warning',      detail: '847 roles — 37% carry AdministratorAccess',    syncedAt: '15 min ago' },
+    { id: 'gcp-iam', label: 'GCP IAM',            product: 'Qualys CIEM', icon: Key,   status: 'disconnected', detail: 'Service account not configured',                syncedAt: null         },
+  ]
+
+  const statusConfig = {
+    connected:    { color: 'text-emerald-400', dot: 'bg-emerald-400', label: 'Connected',       border: 'border-emerald-700/40', pulse: true  },
+    warning:      { color: 'text-amber-400',   dot: 'bg-amber-400',   label: 'Needs Attention', border: 'border-amber-700/40',   pulse: false },
+    disconnected: { color: 'text-slate-500',   dot: 'bg-slate-600',   label: 'Disconnected',    border: 'border-slate-700/40',   pulse: false },
+  }
+
+  const riskColor = {
+    HIGH:   'text-red-400 bg-red-900/30 border-red-700/40',
+    MEDIUM: 'text-amber-400 bg-amber-900/30 border-amber-700/40',
+    LOW:    'text-emerald-400 bg-emerald-900/30 border-emerald-700/40',
+  }
+
+  const connectedSensors = sensors.filter(s => s.status === 'connected').length
+  const progress = Math.round((connectedSensors / sensors.length) * 100)
+
+  return (
+    <div className="space-y-5">
+
+      {/* ── Progress Banner ───────────────────────────────────────────── */}
+      <div className="rounded-xl border border-indigo-700/50 bg-indigo-900/20 p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <div className="flex items-center gap-2 mb-0.5">
+              <Sliders className="w-4 h-4 text-indigo-400" />
+              <span className="text-sm font-semibold text-white">Sensor Fabric Configuration</span>
+              <span className="text-[10px] bg-indigo-700/40 text-indigo-300 px-2 py-0.5 rounded-full border border-indigo-600/40 font-medium">SETUP MODE</span>
+            </div>
+            <p className="text-[11px] text-slate-400">Configure the Autonomous Sensor Fabric, identity integrations, crown jewels, and risk policy to activate full attack path analysis.</p>
+          </div>
+          <div className="text-right shrink-0 ml-4">
+            <div className="text-2xl font-bold text-indigo-300">{progress}%</div>
+            <div className="text-[10px] text-slate-400">fabric active</div>
+          </div>
+        </div>
+        <div className="w-full bg-slate-700 rounded-full h-1.5">
+          <div className="bg-indigo-500 h-1.5 rounded-full transition-all duration-700" style={{ width: `${progress}%` }} />
+        </div>
+        <div className="flex gap-4 mt-2">
+          <span className="text-[10px] text-emerald-400">✓ {connectedSensors} sensors connected</span>
+          <span className="text-[10px] text-amber-400">⚠ 1 needs attention</span>
+        </div>
+      </div>
+
+      {/* ── Row 1: Sensor Fabric | Identity Sync ─────────────────────── */}
+      <div className="grid grid-cols-2 gap-4">
+
+        {/* 1. Sensor Fabric Activation */}
+        <section className="bg-slate-800/60 border border-slate-700 rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-6 h-6 rounded-lg bg-teal-900/40 border border-teal-700/40 flex items-center justify-center">
+              <Wifi className="w-3.5 h-3.5 text-teal-400" />
+            </div>
+            <div>
+              <div className="text-[12px] font-semibold text-white">1. Sensor Fabric Activation</div>
+              <div className="text-[10px] text-slate-400">Real-time health of data collection integrations</div>
+            </div>
+            <span className="ml-auto text-[10px] font-semibold text-teal-300">{connectedSensors}/{sensors.length}</span>
+          </div>
+          <div className="space-y-2">
+            {sensors.map(sensor => {
+              const sc   = statusConfig[sensor.status]
+              const Icon = sensor.icon
+              return (
+                <div key={sensor.id} className={`flex items-center gap-3 p-2.5 rounded-lg bg-slate-900/50 border ${sc.border}`}>
+                  <div className="w-7 h-7 rounded-md bg-slate-800 border border-slate-700 flex items-center justify-center shrink-0">
+                    <Icon className="w-3.5 h-3.5 text-slate-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[11px] font-medium text-white">{sensor.label}</span>
+                      <span className="text-[9px] text-slate-500">{sensor.product}</span>
+                    </div>
+                    <div className="text-[10px] text-slate-400 truncate">{sensor.detail}</div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className={`text-[10px] font-semibold ${sc.color}`}>{sensor.count}</div>
+                    <div className="flex items-center gap-1 justify-end mt-0.5">
+                      <div className={`w-1.5 h-1.5 rounded-full ${sc.dot} ${sc.pulse ? 'animate-pulse' : ''}`} />
+                      <span className={`text-[9px] ${sc.color}`}>{sc.label}</span>
+                    </div>
+                  </div>
+                  {sensor.status === 'warning' && (
+                    <button className="ml-1 px-2 py-1 bg-amber-700/60 hover:bg-amber-700 text-amber-200 text-[9px] rounded font-medium transition-colors shrink-0">Fix</button>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+          <button className="w-full mt-2 py-2 rounded-lg border border-dashed border-teal-700/50 text-[11px] text-teal-400 hover:bg-teal-900/20 transition-colors flex items-center justify-center gap-1.5">
+            <Plus className="w-3 h-3" /> Add New Sensor
+          </button>
+        </section>
+
+        {/* 2. Identity & Domain Sync */}
+        <section className="bg-slate-800/60 border border-slate-700 rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-6 h-6 rounded-lg bg-purple-900/40 border border-purple-700/40 flex items-center justify-center">
+              <Users className="w-3.5 h-3.5 text-purple-400" />
+            </div>
+            <div>
+              <div className="text-[12px] font-semibold text-white">2. Identity &amp; Domain Sync</div>
+              <div className="text-[10px] text-slate-400">AD/IAM integrations for lateral movement mapping</div>
+            </div>
+          </div>
+          <div className="space-y-2 mb-2">
+            {identityConnectors.map(conn => {
+              const sc   = statusConfig[conn.status]
+              const Icon = conn.icon
+              return (
+                <div key={conn.id} className={`flex items-center gap-3 p-2.5 rounded-lg bg-slate-900/50 border ${sc.border}`}>
+                  <div className="w-7 h-7 rounded-md bg-slate-800 border border-slate-700 flex items-center justify-center shrink-0">
+                    <Icon className="w-3.5 h-3.5 text-slate-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[11px] font-medium text-white">{conn.label}</span>
+                      <span className="text-[9px] text-slate-500">{conn.product}</span>
+                    </div>
+                    <div className="text-[10px] text-slate-400 truncate">{conn.detail}</div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    {conn.syncedAt && <div className="text-[9px] text-slate-500 mb-0.5">{conn.syncedAt}</div>}
+                    <div className="flex items-center gap-1 justify-end">
+                      <div className={`w-1.5 h-1.5 rounded-full ${sc.dot}`} />
+                      <span className={`text-[9px] ${sc.color}`}>{sc.label}</span>
+                    </div>
+                  </div>
+                  {conn.status === 'disconnected' && (
+                    <button className="ml-1 px-2 py-1 bg-indigo-700 hover:bg-indigo-600 text-white text-[9px] rounded font-medium transition-colors shrink-0">Connect</button>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+          <button className="w-full py-2 rounded-lg border border-dashed border-purple-700/50 text-[11px] text-purple-400 hover:bg-purple-900/20 transition-colors flex items-center justify-center gap-1.5">
+            <Plus className="w-3 h-3" /> Add Identity Source
+          </button>
+        </section>
+      </div>
+
+      {/* ── Row 2: Crown Jewel Selector | External Surface Mapping ──── */}
+      <div className="grid grid-cols-2 gap-4">
+
+        {/* 3. Crown Jewel Selector */}
+        <section className="bg-slate-800/60 border border-slate-700 rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-6 h-6 rounded-lg bg-yellow-900/40 border border-yellow-700/40 flex items-center justify-center">
+              <Target className="w-3.5 h-3.5 text-yellow-400" />
+            </div>
+            <div>
+              <div className="text-[12px] font-semibold text-white">3. Crown Jewel Selector</div>
+              <div className="text-[10px] text-slate-400">Tag mission-critical asset classes for blast radius scoring</div>
+            </div>
+          </div>
+          {/* Presets */}
+          <div className="space-y-1.5 mb-3">
+            {crownJewelPresets.map(preset => (
+              <div key={preset.id} onClick={() => toggleCrown(preset.id)}
+                className={`flex items-center gap-3 p-2.5 rounded-lg border cursor-pointer transition-all
+                  ${preset.on ? 'bg-yellow-900/10 border-yellow-700/40' : 'bg-slate-900/40 border-slate-700/60 hover:border-slate-600'}`}>
+                <div className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${preset.on ? 'bg-yellow-500 border-yellow-500' : 'border-slate-600'}`}>
+                  {preset.on && <CheckCircle className="w-3 h-3 text-slate-900" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className={`text-[11px] font-medium ${preset.on ? 'text-yellow-200' : 'text-slate-300'}`}>{preset.label}</div>
+                  <div className="text-[10px] text-slate-500">{preset.desc}</div>
+                </div>
+                {preset.on && <span className="text-[9px] bg-yellow-900/40 text-yellow-400 border border-yellow-700/40 px-1.5 py-0.5 rounded font-semibold shrink-0">CROWN JEWEL</span>}
+              </div>
+            ))}
+          </div>
+          {/* Manual tag */}
+          <div className="border-t border-slate-700 pt-3">
+            <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mb-2">Manually Tag an Asset</div>
+            <div className="flex gap-2 mb-2">
+              <input type="text" value={customJewelInput} onChange={e => setCustomJewelInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && addCustomJewel()}
+                placeholder="Hostname or asset name"
+                className="flex-1 bg-slate-900 border border-slate-600 rounded-lg px-2.5 py-1.5 text-[11px] text-white placeholder-slate-500 focus:outline-none focus:border-yellow-500" />
+              <select value={customJewelType} onChange={e => setCustomJewelType(e.target.value)}
+                className="bg-slate-900 border border-slate-600 rounded-lg px-2 py-1.5 text-[11px] text-white focus:outline-none focus:border-yellow-500">
+                <option>Database</option><option>Domain Controller</option><option>Application Server</option>
+                <option>Network Device</option><option>PAM / Vault</option><option>Cloud Resource</option><option>Custom</option>
+              </select>
+              <button onClick={addCustomJewel} className="px-2.5 py-1.5 bg-yellow-700 hover:bg-yellow-600 text-white text-[10px] rounded-lg font-medium transition-colors">+ Tag</button>
+            </div>
+            {customJewels.length === 0 ? (
+              <div className="text-center py-3 text-[10px] text-slate-600 border border-dashed border-slate-700 rounded-lg">No custom assets tagged yet</div>
+            ) : (
+              <div className="space-y-1.5">
+                {customJewels.map(jewel => (
+                  <div key={jewel.id} className="flex items-center gap-2 p-2 bg-yellow-900/10 border border-yellow-700/40 rounded-lg">
+                    <Target className="w-3 h-3 text-yellow-400 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[11px] font-medium text-yellow-200 truncate">{jewel.label}</div>
+                      <div className="text-[9px] text-slate-500">{jewel.type}</div>
+                    </div>
+                    <span className="text-[9px] bg-yellow-900/40 text-yellow-400 border border-yellow-700/40 px-1.5 py-0.5 rounded font-semibold">CROWN JEWEL</span>
+                    <button onClick={() => removeCustomJewel(jewel.id)} className="text-slate-600 hover:text-red-400 transition-colors"><X className="w-3 h-3" /></button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* 4. External Surface Mapping */}
+        <section className="bg-slate-800/60 border border-slate-700 rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-6 h-6 rounded-lg bg-blue-900/40 border border-blue-700/40 flex items-center justify-center">
+              <Globe className="w-3.5 h-3.5 text-blue-400" />
+            </div>
+            <div>
+              <div className="text-[12px] font-semibold text-white">4. External Surface Mapping</div>
+              <div className="text-[10px] text-slate-400">EASM root domains — discover shadow subdomains &amp; APIs</div>
+            </div>
+          </div>
+          <div className="flex gap-2 mb-3">
+            <input type="text" value={domainInput} onChange={e => setDomainInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && addDomain()}
+              placeholder="Enter root domain (e.g. acme.com)"
+              className="flex-1 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-[11px] text-white placeholder-slate-500 focus:outline-none focus:border-blue-500" />
+            <button onClick={addDomain} className="px-3 py-2 bg-blue-700 hover:bg-blue-600 text-white text-[11px] rounded-lg font-medium transition-colors">Add</button>
+          </div>
+          <div className="flex flex-wrap gap-1.5 mb-3">
+            {domains.map(d => (
+              <span key={d} className="flex items-center gap-1.5 bg-blue-900/30 border border-blue-700/40 text-blue-300 text-[10px] px-2 py-1 rounded-full font-medium">
+                <Globe className="w-2.5 h-2.5" />{d}
+                <button onClick={() => removeDomain(d)} className="text-blue-500 hover:text-red-400 transition-colors"><X className="w-2.5 h-2.5" /></button>
+              </span>
+            ))}
+          </div>
+          <div className="text-[10px] text-slate-400 font-medium uppercase tracking-wider mb-2">Latest EASM Crawl</div>
+          <div className="space-y-2">
+            {[
+              { domain: 'acme.com',     subdomains: 847, shadow: 3, apis: 12, risk: 'HIGH'     },
+              { domain: 'acme-corp.io', subdomains: 203, shadow: 4, apis: 7,  risk: 'CRITICAL' },
+            ].map(r => (
+              <div key={r.domain} className="bg-slate-900/60 border border-slate-700/60 rounded-lg p-2.5">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[11px] font-medium text-white">{r.domain}</span>
+                  <SeverityBadge level={r.risk} />
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="bg-slate-800 rounded p-1.5">
+                    <div className="text-[13px] font-bold text-white">{r.subdomains}</div>
+                    <div className="text-[9px] text-slate-400">Subdomains</div>
+                  </div>
+                  <div className="bg-red-900/20 rounded p-1.5 border border-red-800/30">
+                    <div className="text-[13px] font-bold text-red-400">{r.shadow}</div>
+                    <div className="text-[9px] text-slate-400">Shadow IT</div>
+                  </div>
+                  <div className="bg-slate-800 rounded p-1.5">
+                    <div className="text-[13px] font-bold text-white">{r.apis}</div>
+                    <div className="text-[9px] text-slate-400">APIs Found</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
+
+      {/* ── Row 3: Autonomous Policy Opt-in ──────────────────────────── */}
+      <section className="bg-slate-800/60 border border-slate-700 rounded-xl p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-lg bg-red-900/40 border border-red-700/40 flex items-center justify-center">
+              <Zap className="w-3.5 h-3.5 text-red-400" />
+            </div>
+            <div>
+              <div className="text-[12px] font-semibold text-white">5. Autonomous Policy Opt-in</div>
+              <div className="text-[10px] text-slate-400">Classify which risk categories the ETM engine acts on autonomously — "Fix It Safely"</div>
+            </div>
+          </div>
+          <span className="text-[10px] bg-red-900/30 text-red-400 border border-red-700/40 px-2 py-0.5 rounded-full font-medium">
+            {policyToggles.filter(p => p.on).length}/{policyToggles.length} active
+          </span>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          {policyToggles.map(policy => (
+            <div key={policy.id} onClick={() => togglePolicy(policy.id)}
+              className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all
+                ${policy.on ? 'bg-indigo-900/20 border-indigo-700/50' : 'bg-slate-900/40 border-slate-700/50 hover:border-slate-600'}`}>
+              <div className={`relative w-9 h-5 rounded-full shrink-0 transition-colors duration-200 ${policy.on ? 'bg-indigo-600' : 'bg-slate-700'}`}>
+                <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 ${policy.on ? 'translate-x-4' : 'translate-x-0.5'}`} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <span className={`text-[11px] font-medium ${policy.on ? 'text-white' : 'text-slate-400'}`}>{policy.label}</span>
+                  <span className={`text-[9px] px-1.5 py-0.5 rounded border font-semibold ${riskColor[policy.risk]}`}>{policy.risk}</span>
+                </div>
+                <div className="text-[10px] text-slate-500 leading-tight">{policy.desc}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+    </div>
+  )
+}
+
+// ─── Shared data & helpers for Current Release tabs ──────────────────────────
+const CR_TAG_GROUPS = [
+  {
+    group: 'Environment',        source: 'CSAM',
+    color: 'indigo',
+    tags: ['Production', 'Staging', 'Development', 'UAT', 'Disaster Recovery', 'Sandbox'],
+    defaultOn: ['Production', 'UAT'],
+  },
+  {
+    group: 'Asset Criticality',  source: 'UAI',
+    color: 'red',
+    tags: ['Mission Critical', 'High', 'Medium', 'Low', 'Unclassified'],
+    defaultOn: ['Mission Critical', 'High'],
+  },
+  {
+    group: 'Cloud Provider',     source: 'CSAM',
+    color: 'blue',
+    tags: ['AWS', 'Azure', 'GCP', 'On-Premises', 'Hybrid'],
+    defaultOn: ['AWS', 'Azure'],
+  },
+  {
+    group: 'Asset Type',         source: 'UAI',
+    color: 'teal',
+    tags: ['Server', 'Workstation', 'Container', 'Database', 'Network Device', 'Serverless', 'IoT'],
+    defaultOn: ['Server', 'Database', 'Container'],
+  },
+  {
+    group: 'Business Unit',      source: 'CSAM',
+    color: 'purple',
+    tags: ['Finance', 'Engineering', 'HR', 'Sales', 'Operations', 'Legal', 'Marketing'],
+    defaultOn: ['Finance', 'Engineering'],
+  },
+  {
+    group: 'Compliance Scope',   source: 'UAI',
+    color: 'amber',
+    tags: ['PCI-DSS', 'HIPAA', 'SOC 2', 'ISO 27001', 'FedRAMP', 'GDPR'],
+    defaultOn: ['PCI-DSS', 'SOC 2'],
+  },
+]
+
+const CR_COLOR = {
+  indigo: { pill: 'bg-indigo-900/30 border-indigo-700/50 text-indigo-300',   active: 'bg-indigo-600 border-indigo-500 text-white',   badge: 'bg-indigo-900/40 text-indigo-300 border-indigo-700/40', header: 'text-indigo-400' },
+  red:    { pill: 'bg-red-900/20 border-red-700/40 text-red-400',            active: 'bg-red-600 border-red-500 text-white',         badge: 'bg-red-900/30 text-red-300 border-red-700/40',         header: 'text-red-400' },
+  blue:   { pill: 'bg-blue-900/30 border-blue-700/50 text-blue-300',         active: 'bg-blue-600 border-blue-500 text-white',       badge: 'bg-blue-900/30 text-blue-300 border-blue-700/40',      header: 'text-blue-400' },
+  teal:   { pill: 'bg-teal-900/20 border-teal-700/40 text-teal-300',         active: 'bg-teal-600 border-teal-500 text-white',       badge: 'bg-teal-900/30 text-teal-300 border-teal-700/40',      header: 'text-teal-400' },
+  purple: { pill: 'bg-purple-900/30 border-purple-700/50 text-purple-300',   active: 'bg-purple-600 border-purple-500 text-white',   badge: 'bg-purple-900/30 text-purple-300 border-purple-700/40',header: 'text-purple-400' },
+  amber:  { pill: 'bg-amber-900/20 border-amber-700/40 text-amber-300',      active: 'bg-amber-600 border-amber-500 text-white',     badge: 'bg-amber-900/30 text-amber-300 border-amber-700/40',   header: 'text-amber-400' },
+}
+
+const CR_DEFAULT_SELECTED = new Set(
+  CR_TAG_GROUPS.flatMap(g => g.defaultOn.map(t => `${g.group}::${t}`))
+)
+
+const CR_DEFAULT_IPS = [
+  { id: 'ip-1', range: '10.0.0.0/8',      label: 'Corporate Internal Network',  added: '2 days ago' },
+  { id: 'ip-2', range: '172.16.0.0/12',   label: 'Private VPN Range',           added: '2 days ago' },
+  { id: 'ip-3', range: '192.168.1.0/24',  label: 'HQ Office LAN',               added: '5 days ago' },
+]
+
+// Shared Tag Selector section JSX renderer
+function TagSelectorSection({ selectedTags, onToggle }) {
+  const totalSelected = selectedTags.size
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-[11px] text-slate-400">Select tags from CSAM / UAI to scope which assets are included in attack path analysis.</p>
+        <span className="text-[10px] font-semibold bg-indigo-900/30 text-indigo-300 border border-indigo-700/40 px-2 py-0.5 rounded-full shrink-0 ml-3">{totalSelected} selected</span>
+      </div>
+      <div className="space-y-4">
+        {CR_TAG_GROUPS.map(group => {
+          const c = CR_COLOR[group.color]
+          return (
+            <div key={group.group}>
+              <div className="flex items-center gap-2 mb-2">
+                <span className={`text-[10px] font-semibold uppercase tracking-wider ${c.header}`}>{group.group}</span>
+                <span className={`text-[9px] px-1.5 py-0.5 rounded border font-medium ${c.badge}`}>{group.source}</span>
+                <div className="flex-1 h-px bg-slate-700/60" />
+                <span className="text-[9px] text-slate-500">
+                  {group.tags.filter(t => selectedTags.has(`${group.group}::${t}`)).length}/{group.tags.length}
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {group.tags.map(tag => {
+                  const key = `${group.group}::${tag}`
+                  const on  = selectedTags.has(key)
+                  return (
+                    <button
+                      key={tag}
+                      onClick={() => onToggle(key)}
+                      className={`px-2.5 py-1 rounded-full border text-[11px] font-medium transition-all ${on ? c.active : c.pill + ' hover:opacity-80'}`}>
+                      {on && <span className="mr-1 text-[10px]">✓</span>}
+                      {tag}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// Shared IP Whitelist section JSX renderer
+function IpWhitelistSection({ ipRanges, setIpRanges }) {
+  const [ipInput,   setIpInput]   = useState('')
+  const [ipLabel,   setIpLabel]   = useState('')
+
+  const addIp = () => {
+    const val = ipInput.trim()
+    if (!val) return
+    const cidr = /^[\d.]+\/\d+$/.test(val) || /^[\d.]+$/.test(val)
+    setIpRanges(prev => [...prev, { id: `ip-${Date.now()}`, range: val, label: ipLabel.trim() || 'Custom Range', added: 'just now' }])
+    setIpInput(''); setIpLabel('')
+  }
+
+  return (
+    <div>
+      <p className="text-[11px] text-slate-400 mb-4">
+        Whitelist IP addresses or CIDR ranges so the EASM engine can identify shadow assets that belong to your organisation but are not yet in inventory.
+      </p>
+      {/* Input row */}
+      <div className="flex gap-2 mb-4">
+        <input
+          type="text" value={ipInput} onChange={e => setIpInput(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && addIp()}
+          placeholder="IP address or CIDR (e.g. 10.0.0.0/8)"
+          className="flex-1 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-[11px] text-white placeholder-slate-500 focus:outline-none focus:border-blue-500" />
+        <input
+          type="text" value={ipLabel} onChange={e => setIpLabel(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && addIp()}
+          placeholder="Label (optional)"
+          className="w-44 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-[11px] text-white placeholder-slate-500 focus:outline-none focus:border-blue-500" />
+        <button onClick={addIp}
+          className="px-4 py-2 bg-blue-700 hover:bg-blue-600 text-white text-[11px] rounded-lg font-semibold transition-colors flex items-center gap-1.5">
+          <Plus className="w-3.5 h-3.5" /> Add
+        </button>
+      </div>
+      {/* Whitelisted ranges */}
+      {ipRanges.length === 0 ? (
+        <div className="text-center py-6 text-[11px] text-slate-600 border border-dashed border-slate-700 rounded-lg">
+          No IP ranges whitelisted yet
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {ipRanges.map(ip => (
+            <div key={ip.id} className="flex items-center gap-3 p-3 bg-slate-900/60 border border-blue-700/30 rounded-lg">
+              <div className="w-7 h-7 rounded-md bg-blue-900/30 border border-blue-700/40 flex items-center justify-center shrink-0">
+                <Globe className="w-3.5 h-3.5 text-blue-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-[12px] font-mono font-semibold text-white">{ip.range}</span>
+                  <span className="text-[10px] text-slate-400">{ip.label}</span>
+                </div>
+                <div className="text-[10px] text-slate-500">Added {ip.added}</div>
+              </div>
+              <span className="text-[9px] bg-blue-900/30 text-blue-300 border border-blue-700/40 px-1.5 py-0.5 rounded font-medium shrink-0">WHITELISTED</span>
+              <button onClick={() => setIpRanges(prev => prev.filter(x => x.id !== ip.id))}
+                className="text-slate-600 hover:text-red-400 transition-colors ml-1">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="mt-3 p-3 bg-slate-900/40 border border-slate-700/50 rounded-lg">
+        <p className="text-[10px] text-slate-500 leading-relaxed">
+          <span className="text-slate-400 font-medium">How it works:</span> The EASM crawler compares discovered external assets against whitelisted ranges. Assets within these ranges that are not in your CSAM inventory are flagged as <span className="text-amber-400 font-medium">Shadow IT</span> and automatically added to attack path analysis as potential entry points.
+        </p>
+      </div>
+    </div>
+  )
+}
+
+// ─── CurrentReleaseInitialConfigTab (2-step wizard) ──────────────────────────
+function CurrentReleaseInitialConfigTab() {
+  const [step, setStep] = useState(0)
+  const [completedSteps, setCompletedSteps] = useState(new Set())
+  const [selectedTags, setSelectedTags] = useState(new Set(CR_DEFAULT_SELECTED))
+  const [ipRanges, setIpRanges] = useState([...CR_DEFAULT_IPS])
+
+  const STEPS = [
+    { title: 'Asset Tag Selection',              icon: Tag,    desc: 'Choose CSAM / UAI tags to scope attack path coverage' },
+    { title: 'Shadow Asset IP Identification',   icon: Globe,  desc: 'Whitelist IP ranges for EASM shadow asset discovery' },
+  ]
+
+  const toggleTag = (key) => setSelectedTags(prev => {
+    const next = new Set(prev)
+    next.has(key) ? next.delete(key) : next.add(key)
+    return next
+  })
+
+  const goNext = () => { setCompletedSteps(s => new Set([...s, step])); if (step < STEPS.length - 1) setStep(s => s + 1) }
+  const goBack = () => setStep(s => Math.max(s - 1, 0))
+
+  const currentStep = STEPS[step]
+  const StepIcon    = currentStep.icon
+  const isLast      = step === STEPS.length - 1
+
+  return (
+    <div className="flex flex-col" style={{ minHeight: 0 }}>
+
+      {/* Step Indicator */}
+      <div className="bg-slate-800/60 border border-slate-700 rounded-xl p-4 mb-4 shrink-0">
+        <div className="flex items-start">
+          {STEPS.map((s, i) => {
+            const isDone    = completedSteps.has(i)
+            const isCurrent = i === step
+            const Icon      = s.icon
+            return (
+              <div key={i} className="flex items-start flex-1">
+                <div className="flex flex-col items-center flex-1">
+                  <button
+                    onClick={() => setStep(i)}
+                    className={`w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all
+                      ${isDone    ? 'bg-emerald-600 border-emerald-500' :
+                        isCurrent ? 'bg-indigo-600 border-indigo-400 ring-2 ring-indigo-400/30' :
+                                    'bg-slate-800 border-slate-600 hover:border-slate-500'}`}>
+                    {isDone ? <CheckCircle className="w-5 h-5 text-white" />
+                            : <Icon className={`w-5 h-5 ${isCurrent ? 'text-white' : 'text-slate-500'}`} />}
+                  </button>
+                  <div className={`text-[10px] mt-2 font-medium text-center max-w-[100px]
+                    ${isDone ? 'text-emerald-400' : isCurrent ? 'text-indigo-300' : 'text-slate-600'}`}>
+                    {s.title}
+                  </div>
+                </div>
+                {i < STEPS.length - 1 && (
+                  <div className={`h-0.5 w-16 mt-5 mx-2 shrink-0 transition-colors ${completedSteps.has(i) ? 'bg-emerald-600' : 'bg-slate-700'}`} />
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Step Content */}
+      <div className="bg-slate-800/60 border border-slate-700 rounded-xl p-5 overflow-y-auto flex-1">
+        <div className="flex items-center gap-3 mb-5">
+          <div className="w-8 h-8 rounded-lg bg-indigo-900/40 border border-indigo-700/40 flex items-center justify-center shrink-0">
+            <StepIcon className="w-4 h-4 text-indigo-400" />
+          </div>
+          <div>
+            <div className="text-[13px] font-semibold text-white">{currentStep.title}</div>
+            <div className="text-[11px] text-slate-400">{currentStep.desc}</div>
+          </div>
+          <div className="ml-auto text-[10px] text-slate-500 font-medium shrink-0">Step {step + 1} of {STEPS.length}</div>
+        </div>
+        {step === 0 && <TagSelectorSection selectedTags={selectedTags} onToggle={toggleTag} />}
+        {step === 1 && <IpWhitelistSection ipRanges={ipRanges} setIpRanges={setIpRanges} />}
+      </div>
+
+      {/* Navigation */}
+      <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-700 shrink-0">
+        <button onClick={goBack} disabled={step === 0}
+          className="px-4 py-2 rounded-lg border border-slate-600 text-slate-300 text-[12px] font-medium hover:bg-slate-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-2">
+          <ChevronRight className="w-3.5 h-3.5 rotate-180" /> Back
+        </button>
+        <div className="flex gap-1.5 items-center">
+          {STEPS.map((_, i) => (
+            <button key={i} onClick={() => setStep(i)}
+              className={`h-2 rounded-full transition-all duration-200 ${i === step ? 'bg-indigo-400 w-5' : completedSteps.has(i) ? 'bg-emerald-500 w-2' : 'bg-slate-700 w-2'}`} />
+          ))}
+        </div>
+        {isLast ? (
+          <button onClick={() => setCompletedSteps(new Set([0, 1]))}
+            className="px-5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[12px] font-semibold transition-colors flex items-center gap-2">
+            <CheckCircle className="w-3.5 h-3.5" /> Complete Setup
+          </button>
+        ) : (
+          <button onClick={goNext}
+            className="px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[12px] font-semibold transition-colors flex items-center gap-2">
+            Next <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+        )}
+      </div>
+
+    </div>
+  )
+}
+
+// ─── CurrentReleaseConfigTab (flat single-screen) ────────────────────────────
+function CurrentReleaseConfigTab() {
+  const [selectedTags, setSelectedTags] = useState(new Set(CR_DEFAULT_SELECTED))
+  const [ipRanges,     setIpRanges]     = useState([...CR_DEFAULT_IPS])
+
+  const toggleTag = (key) => setSelectedTags(prev => {
+    const next = new Set(prev)
+    next.has(key) ? next.delete(key) : next.add(key)
+    return next
+  })
+
+  return (
+    <div className="space-y-5">
+
+      {/* Section 1 — Tag Selection */}
+      <section className="bg-slate-800/60 border border-slate-700 rounded-xl p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <div className="w-6 h-6 rounded-lg bg-indigo-900/40 border border-indigo-700/40 flex items-center justify-center">
+            <Tag className="w-3.5 h-3.5 text-indigo-400" />
+          </div>
+          <div>
+            <div className="text-[12px] font-semibold text-white">1. Asset Tag Selection</div>
+            <div className="text-[10px] text-slate-400">Prepopulated from CSAM / UAI — select tags to scope attack path analysis</div>
+          </div>
+          <span className="ml-auto text-[10px] font-semibold bg-indigo-900/30 text-indigo-300 border border-indigo-700/40 px-2 py-0.5 rounded-full shrink-0">
+            {selectedTags.size} selected
+          </span>
+        </div>
+        <TagSelectorSection selectedTags={selectedTags} onToggle={toggleTag} />
+      </section>
+
+      {/* Section 2 — IP Whitelist */}
+      <section className="bg-slate-800/60 border border-slate-700 rounded-xl p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <div className="w-6 h-6 rounded-lg bg-blue-900/40 border border-blue-700/40 flex items-center justify-center">
+            <Globe className="w-3.5 h-3.5 text-blue-400" />
+          </div>
+          <div>
+            <div className="text-[12px] font-semibold text-white">2. Shadow Asset IP Identification</div>
+            <div className="text-[10px] text-slate-400">Add / whitelist IP ranges for EASM shadow asset discovery</div>
+          </div>
+          <span className="ml-auto text-[10px] font-semibold bg-blue-900/30 text-blue-300 border border-blue-700/40 px-2 py-0.5 rounded-full shrink-0">
+            {ipRanges.length} range{ipRanges.length !== 1 ? 's' : ''}
+          </span>
+        </div>
+        <IpWhitelistSection ipRanges={ipRanges} setIpRanges={setIpRanges} />
+      </section>
+
+    </div>
+  )
+}
+
 // ─── Main Component ────────────────────────────────────────────────────────────
 export default function AttackPathInsights() {
   const [activeTab,       setActiveTab]       = useState('discover')
@@ -1677,9 +2808,13 @@ export default function AttackPathInsights() {
   ]
 
   const tabs = [
-    { id: 'discover',  label: '01  Discover',  icon: Eye,    desc: 'Browse & filter attack paths' },
-    { id: 'analyze',   label: '02  Analyze',   icon: Target, desc: 'Drill into a specific path'  },
-    { id: 'remediate', label: '03  Remediate', icon: Wrench, desc: 'Recommended remediation actions' },
+    { id: 'discover',    label: '01  Discover',                        icon: Eye,       desc: 'Browse & filter attack paths' },
+    { id: 'analyze',     label: '02  Analyze',                         icon: Target,    desc: 'Drill into a specific path'  },
+    { id: 'remediate',   label: '03  Remediate',                       icon: Wrench,    desc: 'Recommended remediation actions' },
+    { id: 'initial',     label: '04  Initial Configuration',           icon: Zap,       desc: 'Step-by-step onboarding wizard' },
+    { id: 'configure',   label: '05  Configuration',                   icon: Sliders,   desc: 'Sensor fabric & policy setup' },
+    { id: 'cr-initial',  label: '06  Current Release Initial Config',  icon: Tag,       desc: 'Tag selection & IP whitelist wizard' },
+    { id: 'cr-config',   label: '07  Current Release Config',          icon: Settings2, desc: 'Tag selection & IP whitelist — flat view' },
   ]
 
   const handleSelectPath = (path) => {
@@ -1777,9 +2912,13 @@ export default function AttackPathInsights() {
               </div>
 
               {/* Tab content */}
-              {activeTab === 'discover'  && <DiscoverTab onSelectPath={handleSelectPath} onOpenResource={handleOpenResource} />}
-              {activeTab === 'analyze'   && <AnalyzeTab  selectedPath={selectedPath} onSelectPath={(p) => { setSelectedPath(p) }} onOpenResource={handleOpenResource} onNavigateToRemediate={() => setActiveTab('remediate')} />}
-              {activeTab === 'remediate' && <RemediateTab selectedPath={selectedPath} onSelectPath={handleSelectPath} onOpenResource={handleOpenResource} />}
+              {activeTab === 'discover'   && <DiscoverTab onSelectPath={handleSelectPath} onOpenResource={handleOpenResource} />}
+              {activeTab === 'analyze'    && <AnalyzeTab  selectedPath={selectedPath} onSelectPath={(p) => { setSelectedPath(p) }} onOpenResource={handleOpenResource} onNavigateToRemediate={() => setActiveTab('remediate')} />}
+              {activeTab === 'remediate'  && <RemediateTab selectedPath={selectedPath} onSelectPath={handleSelectPath} onOpenResource={handleOpenResource} />}
+              {activeTab === 'initial'    && <InitialConfigurationTab />}
+              {activeTab === 'configure'  && <ConfigurationTab />}
+              {activeTab === 'cr-initial' && <CurrentReleaseInitialConfigTab />}
+              {activeTab === 'cr-config'  && <CurrentReleaseConfigTab />}
             </div>
           </main>
         </div>
