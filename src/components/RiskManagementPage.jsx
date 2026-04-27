@@ -5,7 +5,7 @@ import {
   BarChart2, Target, Grid, BookOpen, FileText, GitBranch, Eye,
   HelpCircle, Settings, X
 } from 'lucide-react'
-import AttackPathQualys from './AttackPathQualys'
+import AttackPathInsights from './AttackPathInsights'
 
 // ─── Mock findings data ───────────────────────────────────────────────────────
 const FINDINGS = [
@@ -206,8 +206,8 @@ export default function RiskManagementPage() {
             ))}
           </div>
         </div>
-        <div className="flex-1 overflow-y-auto">
-          <AttackPathQualys embedded />
+        <div className="flex-1 overflow-hidden flex flex-col min-h-0">
+          <AttackPathInsights embedded />
         </div>
       </div>
     )
