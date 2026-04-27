@@ -627,7 +627,6 @@ export default function AttackPathQualys({ embedded = false }) {
     { label: 'Dashboard', icon: LayoutDashboard },
     { label: 'Inventory', icon: Package },
     { label: 'Risk Management', icon: ShieldAlert },
-    { label: 'Attack Path', icon: GitBranch, active: true },
   ]
 
   const tabs = [
