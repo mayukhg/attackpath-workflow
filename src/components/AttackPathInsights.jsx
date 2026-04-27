@@ -479,18 +479,18 @@ const ATTACK_PATHS = [
 // ─── Module-level Contextual Risk & Toxic Combo data ─────────────────────────
 // Defined here so both AnalyzeTab and RemediateTab can reference them.
 const SCORING_ITEMS = [
-  { asset: 'API Gateway',     resourceId: 'res-graphql-api', reason: 'Toxic Combination: CVE + IAM + Internet-facing (+24%)', base: 73, adjusted: 97, delta: '+24%', positive: true  },
-  { asset: 'Jump Server',     resourceId: null,              reason: 'Choke Point (+19%): converges 5 attack paths',          base: 68, adjusted: 87, delta: '+19%', positive: true  },
-  { asset: 'Redis Cache',     resourceId: 'res-redis-cache', reason: 'Choke Point (+29%): no auth + credential store',        base: 65, adjusted: 94, delta: '+29%', positive: true  },
-  { asset: 'Dev Test Server',   resourceId: null,                reason: 'No Reachability: isolated VLAN, no external paths',                                    base: 62, adjusted: 27,  delta: '-57%', positive: false },
-  { asset: 'Staging DB',        resourceId: null,                reason: 'Dormant: no verified credential or service path',                                      base: 58, adjusted: 28,  delta: '-51%', positive: false },
-  { asset: 'BeyondTrust Appliance', resourceId: 'res-bt-appliance',        reason: 'Internet-Exposed PAM + Pre-auth RCE + Vault Access + Full Domain Path (+29%)',                        base: 71, adjusted: 100, delta: '+29%', positive: true  },
-  { asset: 'Windows Server (Legacy)', resourceId: 'res-win-server-unpatched', reason: 'MS17-010 Unpatched + Shared Local Admin + NTLMv1 + No Credential Guard (+27%)',                       base: 68, adjusted: 95,  delta: '+27%', positive: true  },
-  { asset: 'Shadow API',        resourceId: 'res-shadow-api',    reason: 'BOLA + Unmanaged Asset + No FIM + Container Escape Path (+28%)',                       base: 67, adjusted: 96,  delta: '+28%', positive: true  },
-  { asset: 'Cloud Mgmt Console',resourceId: 'res-cloud-mgmt-a', reason: 'Hardcoded SA Key + SaaS MFA Bypass + Direct VPN Pivot to Corp Net (+26%)',             base: 70, adjusted: 95,  delta: '+26%', positive: true  },
-  { asset: 'Prod K8s Cluster',  resourceId: 'res-prod-k8s',         reason: 'Unscanned Supply Chain + Over-Privileged Pod IAM + Hybrid AD Sync Path (+25%)',         base: 68, adjusted: 93,  delta: '+25%', positive: true  },
-  { asset: 'Apache Struts Server', resourceId: 'res-struts-appserver', reason: 'CVE-2023-50164 RCE + Shadow API Entry + Container Escape Chain + AD Path (+30%)',         base: 69, adjusted: 98,  delta: '+30%', positive: true  },
-  { asset: 'runc Container Host',  resourceId: 'res-runc-container',   reason: 'CVE-2019-5736 Container Escape + Host Root + Credential Dump + Domain Path (+28%)',        base: 70, adjusted: 97,  delta: '+28%', positive: true  },
+  { asset: 'API Gateway',            resourceId: 'res-graphql-api',        reason: 'Toxic Combination: CVE + IAM + Internet-facing (+24%)',                              base: 7.3, adjusted: 9.7,  delta: '+24%', positive: true  },
+  { asset: 'Jump Server',            resourceId: null,                      reason: 'Choke Point (+19%): converges 5 attack paths',                                      base: 6.8, adjusted: 8.7,  delta: '+19%', positive: true  },
+  { asset: 'Redis Cache',            resourceId: 'res-redis-cache',         reason: 'Choke Point (+29%): no auth + credential store',                                    base: 6.5, adjusted: 9.4,  delta: '+29%', positive: true  },
+  { asset: 'Dev Test Server',        resourceId: null,                      reason: 'No Reachability: isolated VLAN, no external paths',                                 base: 6.2, adjusted: 2.7,  delta: '-57%', positive: false },
+  { asset: 'Staging DB',             resourceId: null,                      reason: 'Dormant: no verified credential or service path',                                   base: 5.8, adjusted: 2.8,  delta: '-51%', positive: false },
+  { asset: 'BeyondTrust Appliance',  resourceId: 'res-bt-appliance',        reason: 'Internet-Exposed PAM + Pre-auth RCE + Vault Access + Full Domain Path (+29%)',      base: 7.1, adjusted: 10.0, delta: '+29%', positive: true  },
+  { asset: 'Windows Server (Legacy)',resourceId: 'res-win-server-unpatched', reason: 'MS17-010 Unpatched + Shared Local Admin + NTLMv1 + No Credential Guard (+27%)',    base: 6.8, adjusted: 9.5,  delta: '+27%', positive: true  },
+  { asset: 'Shadow API',             resourceId: 'res-shadow-api',          reason: 'BOLA + Unmanaged Asset + No FIM + Container Escape Path (+28%)',                    base: 6.7, adjusted: 9.6,  delta: '+28%', positive: true  },
+  { asset: 'Cloud Mgmt Console',     resourceId: 'res-cloud-mgmt-a',        reason: 'Hardcoded SA Key + SaaS MFA Bypass + Direct VPN Pivot to Corp Net (+26%)',         base: 7.0, adjusted: 9.5,  delta: '+26%', positive: true  },
+  { asset: 'Prod K8s Cluster',       resourceId: 'res-prod-k8s',            reason: 'Unscanned Supply Chain + Over-Privileged Pod IAM + Hybrid AD Sync Path (+25%)',    base: 6.8, adjusted: 9.3,  delta: '+25%', positive: true  },
+  { asset: 'Apache Struts Server',   resourceId: 'res-struts-appserver',    reason: 'CVE-2023-50164 RCE + Shadow API Entry + Container Escape Chain + AD Path (+30%)',  base: 6.9, adjusted: 9.8,  delta: '+30%', positive: true  },
+  { asset: 'runc Container Host',    resourceId: 'res-runc-container',      reason: 'CVE-2019-5736 Container Escape + Host Root + Credential Dump + Domain Path (+28%)', base: 7.0, adjusted: 9.7,  delta: '+28%', positive: true  },
 ]
 
 const TOXIC_COMBOS = [
@@ -1456,9 +1456,9 @@ function AnalyzeTab({ selectedPath, onSelectPath, onOpenResource, onNavigateToRe
                 <div className="flex items-center gap-3 shrink-0">
                   <div className="text-[10px] text-slate-400">Base → Adjusted</div>
                   <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-mono text-slate-400">{item.base}</span>
+                    <span className="text-xs font-mono text-slate-400">{item.base.toFixed(1)}</span>
                     <ArrowRight className="w-3 h-3 text-slate-400" />
-                    <span className={`text-xs font-mono font-bold ${item.positive ? 'text-red-600' : 'text-green-400'}`}>{item.adjusted}</span>
+                    <span className={`text-xs font-mono font-bold ${item.positive ? 'text-red-600' : 'text-green-400'}`}>{item.adjusted.toFixed(1)}</span>
                   </div>
                   <span className={`text-xs font-bold px-2 py-0.5 rounded ${item.positive ? 'bg-red-900/30 text-red-600' : 'bg-green-900/30 text-green-400'}`}>{item.delta}</span>
                 </div>
@@ -3034,7 +3034,6 @@ export default function AttackPathInsights() {
                     <GitBranch className="w-5 h-5 text-indigo-400" />
                     <h1 className="text-lg font-bold text-white">Attack Paths</h1>
                   </div>
-                  <p className="text-[11px] text-slate-400">Qualys TotalCloud — Adversarial mapping, analysis &amp; risk-correlated remediation</p>
                 </div>
               </div>
 
