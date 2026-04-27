@@ -107,49 +107,14 @@ const getSharedResourceIds = (pathId) => {
 // `resources` (plain count) replaced by `resourceIds[]` — references into RESOURCES store.
 // Each flowNode may carry an optional `resourceId` linking it to a RESOURCES entry.
 const ATTACK_PATHS = [
-  // ── Path D: Identity Vault Compromise (top priority) ─────────────────────────
-  {
-    id: 8001,
-    title: 'Identity Vault Compromise — PAM Appliance RCE to Full Domain Ransomware',
-    severity: 'CRITICAL',
-    entry: 'Internet Exposure (BeyondTrust Appliance)',
-    target: 'Core Databases + Backups (Exfiltration / Ransomware)',
-    hops: 5, gaps: 4, score: 99,
-    resourceIds: ['res-bt-appliance', 'res-cred-vault', 'res-domain-ctrl', 'res-crown-dbs'],
-    mitre: 'T1190 → T1505.003 → T1555 → T1078.002 → T1486',
-    path: 'Internet → BeyondTrust RCE → Webshell/RAT → PAM Vault → Domain Admin → DBs + Backups (Ransomware)',
-    status: 'open',
-    flowNodes: [
-      { label: 'Internet Exposure',      icon: '🌐', severity: null,       isStart: true },
-      { label: 'BeyondTrust Appliance',  icon: '🔐', severity: 'CRITICAL', edge: 'Pre-auth RCE CVE-2026-1731', resourceId: 'res-bt-appliance' },
-      { label: 'Webshell / RAT',         icon: '🦠', severity: 'CRITICAL', edge: 'Webshell + RAT Deploy' },
-      { label: 'Credential Vault',       icon: '🔒', severity: 'CRITICAL', edge: 'PAM Vault Access',           resourceId: 'res-cred-vault' },
-      { label: 'Domain Admin',           icon: '👤', severity: 'CRITICAL', edge: 'AD Enum + DA Creation',      resourceId: 'res-domain-ctrl' },
-      { label: 'DBs + Backups',          icon: null,  severity: 'CRITICAL', edge: 'Exfiltration + Ransomware', resourceId: 'res-crown-dbs', isCrown: true },
-    ],
-    gaps_detail: [
-      { label: 'Internet-Exposed PAM:',   value: 'BeyondTrust appliance publicly reachable — CVE-2026-1731 pre-auth RCE requires zero credentials. Wormable and remotely exploitable with no user interaction (Qualys EASM + VMDR)' },
-      { label: 'Webshell Persistence:',  value: 'Attacker writes webshell to BeyondTrust document root and deploys RAT — FIM not deployed on PAM appliance for real-time file change detection (Qualys FIM + Multi-Vector EDR)' },
-      { label: 'PAM Vault Unguarded:',   value: 'Compromised appliance service account has direct vault access — no vault access anomaly detection or session recording on privileged account retrieval (Qualys CSAM + Policy Compliance)' },
-      { label: 'AD Enumeration Free:',   value: 'No controls on bulk AD enumeration — attacker creates Domain Admin accounts using vault credentials without triggering SIEM or EDR alerts (Qualys Multi-Vector EDR + Policy Compliance)' },
-      { label: 'Chained Path:',          value: 'Internet RCE → Webshell + RAT Persistence → PAM Vault Credential Dump → AD Domain Admin Creation → Crown Jewel DB Exfiltration + Ransomware Deployment' },
-    ],
-    remediation: [
-      { priority: 'CRITICAL', action: 'Remove BeyondTrust appliance from internet immediately — restrict to internal network only and apply CVE-2026-1731 emergency patch (Qualys EASM + VMDR)',             effort: 'Low',    eta: '2 hours', roi: 9.9, resourceId: 'res-bt-appliance' },
-      { priority: 'CRITICAL', action: 'Deploy Qualys FIM on all PAM appliances — real-time alert on any unauthorized file writes to document root or service directories (Qualys FIM + Multi-Vector EDR)', effort: 'Low',    eta: '4 hours', roi: 9.5, resourceId: 'res-bt-appliance' },
-      { priority: 'CRITICAL', action: 'Enforce least-privilege on PAM vault service accounts — enable vault access session logging and anomaly alerting (Qualys CSAM + Policy Compliance)',                 effort: 'Medium', eta: '1 day',   roi: 8.8, resourceId: 'res-cred-vault' },
-      { priority: 'HIGH',     action: 'Deploy Qualys Multi-Vector EDR across all domain-joined systems — enable anomalous AD enumeration and new privileged account creation alerts',                      effort: 'High',   eta: '5 days',  roi: 5.2, resourceId: 'res-domain-ctrl' },
-      { priority: 'HIGH',     action: 'Implement immutable backup snapshots and database activity monitoring — detect mass file-modification indicative of ransomware (Qualys VMDR + Multi-Vector EDR)',    effort: 'Medium', eta: '3 days',  roi: 4.8, resourceId: 'res-crown-dbs' },
-    ],
-  },
   // ── Path 6003: VPN Brute-Force → AD Takeover ────────────────────────────────
   {
     id: 6003,
     title: 'VPN Brute-Force — Unpatched Windows Host to Active Directory Takeover',
     severity: 'CRITICAL',
     entry: 'VPN Gateway (Weak MFA / SMS OTP)',
-    target: 'Domain Controller (Tier-0 — Full Domain Compromise)',
-    hops: 6, gaps: 5, score: 95,
+    target: 'Domain Controller (Tier-0)',
+    hops: 6, gaps: 5, score: 9.5,
     resourceIds: ['res-vpn-gateway', 'res-win-server-unpatched', 'res-workstation', 'res-domain-ctrl'],
     mitre: 'T1110 → T1068 → T1003.001 → T1550.002 → T1003.006',
     path: 'VPN Gateway → Windows Server → Local Admin → NTLM Hash → Workstation → Domain Controller',
@@ -186,7 +151,7 @@ const ATTACK_PATHS = [
     severity: 'CRITICAL',
     entry: 'SaaS Tenant (MFA Disabled)',
     target: 'On-Prem SQL Server (PII)',
-    hops: 5, gaps: 4, score: 96,
+    hops: 5, gaps: 4, score: 9.6,
     resourceIds: ['res-saas-tenant', 'res-cloud-mgmt-a', 'res-ec2-pwnkit', 'res-always-on-vpn', 'res-onprem-sql'],
     mitre: 'T1078.004 → T1552.001 → T1068 → T1021.007 → T1048',
     path: 'SaaS Tenant → Cloud Mgmt Console → EC2 Instance (PwnKit) → Always-On VPN → On-Prem SQL Server',
@@ -218,8 +183,8 @@ const ATTACK_PATHS = [
     title: 'Shadow-IT API Breach — Unmanaged Asset to Active Directory Takeover',
     severity: 'CRITICAL',
     entry: 'Shadow Subdomain (EASM Discovery)',
-    target: 'Active Directory (Domain Admin Hash)',
-    hops: 5, gaps: 4, score: 94,
+    target: 'Active Directory',
+    hops: 5, gaps: 4, score: 9.4,
     resourceIds: ['res-shadow-subdomain', 'res-shadow-api', 'res-web-shell', 'res-container-host', 'res-domain-ctrl'],
     mitre: 'T1590.001 → T1190 → T1505.003 → T1611 → T1003.001',
     path: 'Shadow Subdomain → BOLA API → Web Shell → Container Escape → NTLM Hash Dump → AD Domain Admin',
@@ -252,7 +217,7 @@ const ATTACK_PATHS = [
     severity: 'CRITICAL',
     entry: 'Vulnerable Third-Party Library (Supply Chain)',
     target: 'On-Prem Active Directory (Hybrid Identity Sync)',
-    hops: 5, gaps: 4, score: 93,
+    hops: 5, gaps: 4, score: 9.3,
     resourceIds: ['res-vuln-lib', 'res-cicd-pipeline', 'res-prod-k8s', 'res-pod-iam', 'res-hybrid-ad'],
     mitre: 'T1195.001 → T1072 → T1610 → T1528 → T1484.002',
     path: 'Vulnerable Library → CI/CD Pipeline → Prod K8s → Pod IAM Role → Entra Connect → On-Prem AD',
@@ -279,14 +244,49 @@ const ATTACK_PATHS = [
       { priority: 'MEDIUM',   action: 'Audit Entra ID Connect configuration — restrict password writeback to privileged accounts and enable sync activity alerting (Qualys PC)',  effort: 'Medium', eta: '2 days',  roi: 4.2, resourceId: 'res-hybrid-ad' },
     ],
   },
+  // ── Path D: Identity Vault Compromise ──────────────────────────────────────
+  {
+    id: 8001,
+    title: 'Identity Vault Compromise — PAM Appliance RCE to Full Domain Ransomware',
+    severity: 'CRITICAL',
+    entry: 'Internet Exposure (BeyondTrust Appliance)',
+    target: 'Core Databases + Backups',
+    hops: 5, gaps: 4, score: 9.9,
+    resourceIds: ['res-bt-appliance', 'res-cred-vault', 'res-domain-ctrl', 'res-crown-dbs'],
+    mitre: 'T1190 → T1505.003 → T1555 → T1078.002 → T1486',
+    path: 'Internet → BeyondTrust RCE → Webshell/RAT → PAM Vault → Domain Admin → DBs + Backups (Ransomware)',
+    status: 'open',
+    flowNodes: [
+      { label: 'Internet Exposure',     icon: '🌐', severity: null,       isStart: true },
+      { label: 'BeyondTrust Appliance', icon: '🔐', severity: 'CRITICAL', edge: 'Pre-auth RCE CVE-2026-1731', resourceId: 'res-bt-appliance' },
+      { label: 'Webshell / RAT',        icon: '🦠', severity: 'CRITICAL', edge: 'Webshell + RAT Deploy' },
+      { label: 'Credential Vault',      icon: '🔒', severity: 'CRITICAL', edge: 'PAM Vault Access',           resourceId: 'res-cred-vault' },
+      { label: 'Domain Admin',          icon: '👤', severity: 'CRITICAL', edge: 'AD Enum + DA Creation',      resourceId: 'res-domain-ctrl' },
+      { label: 'DBs + Backups',         icon: null,  severity: 'CRITICAL', edge: 'Exfiltration + Ransomware', resourceId: 'res-crown-dbs', isCrown: true },
+    ],
+    gaps_detail: [
+      { label: 'Internet-Exposed PAM:', value: 'BeyondTrust appliance publicly reachable — CVE-2026-1731 pre-auth RCE requires zero credentials. Wormable and remotely exploitable with no user interaction (Qualys EASM + VMDR)' },
+      { label: 'Webshell Persistence:', value: 'Attacker writes webshell to BeyondTrust document root and deploys RAT — FIM not deployed on PAM appliance for real-time file change detection (Qualys FIM + Multi-Vector EDR)' },
+      { label: 'PAM Vault Unguarded:', value: 'Compromised appliance service account has direct vault access — no vault access anomaly detection or session recording on privileged account retrieval (Qualys CSAM + Policy Compliance)' },
+      { label: 'AD Enumeration Free:', value: 'No controls on bulk AD enumeration — attacker creates Domain Admin accounts using vault credentials without triggering SIEM or EDR alerts (Qualys Multi-Vector EDR + Policy Compliance)' },
+      { label: 'Chained Path:', value: 'Internet RCE → Webshell + RAT Persistence → PAM Vault Credential Dump → AD Domain Admin Creation → Crown Jewel DB Exfiltration + Ransomware Deployment' },
+    ],
+    remediation: [
+      { priority: 'CRITICAL', action: 'Remove BeyondTrust appliance from internet immediately — restrict to internal network only and apply CVE-2026-1731 emergency patch (Qualys EASM + VMDR)',             effort: 'Low',    eta: '2 hours', roi: 9.9, resourceId: 'res-bt-appliance' },
+      { priority: 'CRITICAL', action: 'Deploy Qualys FIM on all PAM appliances — real-time alert on any unauthorized file writes to document root or service directories (Qualys FIM + Multi-Vector EDR)', effort: 'Low',    eta: '4 hours', roi: 9.5, resourceId: 'res-bt-appliance' },
+      { priority: 'CRITICAL', action: 'Enforce least-privilege on PAM vault service accounts — enable vault access session logging and anomaly alerting (Qualys CSAM + Policy Compliance)',                 effort: 'Medium', eta: '1 day',   roi: 8.8, resourceId: 'res-cred-vault' },
+      { priority: 'HIGH',     action: 'Deploy Qualys Multi-Vector EDR across all domain-joined systems — enable anomalous AD enumeration and new privileged account creation alerts',                      effort: 'High',   eta: '5 days',  roi: 5.2, resourceId: 'res-domain-ctrl' },
+      { priority: 'HIGH',     action: 'Implement immutable backup snapshots and database activity monitoring — detect mass file-modification indicative of ransomware (Qualys VMDR + Multi-Vector EDR)',    effort: 'Medium', eta: '3 days',  roi: 4.8, resourceId: 'res-crown-dbs' },
+    ],
+  },
   // ── Path 7004: Shadow API RCE → Container Escape → AD Takeover ───────────────
   {
     id: 7004,
     title: 'Shadow API Breach — RCE Chain & Container Escape to Full Domain Compromise',
     severity: 'CRITICAL',
     entry: 'UAT Dev Environment (DNS Enumeration)',
-    target: 'Active Directory (Domain Admin — Full Enterprise Compromise)',
-    hops: 6, gaps: 5, score: 97,
+    target: 'Active Directory',
+    hops: 6, gaps: 5, score: 9.7,
     resourceIds: ['res-shadow-subdomain', 'res-shadow-api', 'res-struts-appserver', 'res-runc-container', 'res-host-root', 'res-domain-ctrl'],
     mitre: 'T1590.001 → T1190 → T1505.003 → T1611 → T1003.001 → T1550.002',
     path: 'UAT Subdomain → BOLA Shadow API → CVE-2023-50164 RCE + Web Shell → CVE-2019-5736 Container Escape → NTLM/Kerberos Dump → Domain Admin (Pass-the-Hash / Zerologon)',
@@ -325,7 +325,7 @@ const ATTACK_PATHS = [
     target: 'Customer PII Database',
     hops: 4,
     gaps: 3,
-    score: 97,
+    score: 9.7,
     resourceIds: ['res-graphql-api', 'res-redis-cache', 'res-auth-service', 'res-postgres-pii'],
     mitre: 'T1190 → T1021 → T1565',
     path: 'Internet → GraphQL API → Redis Cache → PostgreSQL (PII)',
@@ -357,7 +357,7 @@ const ATTACK_PATHS = [
     target: 'Authentication Service',
     hops: 4,
     gaps: 2,
-    score: 94,
+    score: 9.4,
     resourceIds: ['res-s3-config', 'res-auth-service', 'res-postgres-pii'],
     mitre: 'T1530 → T1552 → T1078',
     path: 'S3 Config → SSH Key → Auth Service → PostgreSQL (PII)',
@@ -388,7 +388,7 @@ const ATTACK_PATHS = [
     target: 'Domain Controller (Tier-0)',
     hops: 6,
     gaps: 4,
-    score: 91,
+    score: 9.1,
     resourceIds: ['res-vpn-gateway', 'res-workstation', 'res-domain-ctrl'],
     mitre: 'T1078 → T1548 → T1068 → T1003',
     path: 'VPN → Workstation → Local Admin → SYSTEM → DCSync → Domain Admin',
@@ -420,7 +420,7 @@ const ATTACK_PATHS = [
     target: 'Active Directory',
     hops: 4,
     gaps: 2,
-    score: 82,
+    score: 8.2,
     resourceIds: ['res-graphql-api', 'res-redis-cache', 'res-ldap-ad'],
     mitre: 'T1190 → T1552 → T1078.002',
     path: 'GraphQL → Redis → Cached Creds → LDAP / AD',
@@ -451,7 +451,7 @@ const ATTACK_PATHS = [
     target: 'RDS Database',
     hops: 3,
     gaps: 2,
-    score: 79,
+    score: 7.9,
     resourceIds: ['res-lambda-fn', 'res-iam-role', 'res-rds-db'],
     mitre: 'T1190 → T1078.004 → T1530',
     path: 'Internet → Lambda (Over-privileged) → RDS SQL Execution',
@@ -706,7 +706,7 @@ function ResourceDetailPanel({ resourceId, onClose, onSelectPath }) {
               { label: 'Services',      value: resource.services },
             ].map(item => (
               <div key={item.label} className="flex gap-2 text-[10px]">
-                <span className="text-slate-400 font-medium w-20 shrink-0">{item.label}</span>
+                <span className="text-slate-200 font-semibold w-20 shrink-0">{item.label}</span>
                 <span className="text-slate-200 font-mono break-all">{item.value}</span>
               </div>
             ))}
@@ -735,8 +735,8 @@ function ResourceDetailPanel({ resourceId, onClose, onSelectPath }) {
                     <span className="text-[10px] font-mono text-slate-400">AP-{p.id}</span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <span className={`text-[10px] font-bold ${p.score >= 90 ? 'text-red-600' : 'text-orange-600'}`}>
-                      Score {p.score}
+                    <span className={`text-[10px] font-bold ${p.score >= 9.0 ? 'text-red-600' : 'text-orange-600'}`}>
+                      QVSS {p.score}
                     </span>
                     <StatusPill status={p.status} />
                   </div>
@@ -764,11 +764,21 @@ function ResourceDetailPanel({ resourceId, onClose, onSelectPath }) {
 function DiscoverTab({ onSelectPath, onOpenResource }) {
   const [severityFilter, setSeverityFilter] = useState('all')
   const [searchQuery, setSearchQuery]       = useState('')
+  const [sharedPopup,   setSharedPopup]     = useState(null)  // { ap, resources[] }
+
+  const openSharedPopup = (e, ap) => {
+    e.stopPropagation()
+    const resources = ap.resourceIds
+      .map(rid => ({ resource: RESOURCES.find(r => r.id === rid), paths: getPathsByResourceId(rid) }))
+      .filter(({ resource, paths }) => resource && paths.length > 1)
+      .map(({ resource, paths }) => ({ resource, otherPaths: paths.filter(p => p.id !== ap.id) }))
+    setSharedPopup({ ap, resources })
+  }
 
   const stats = [
     { label: 'Total Paths',          value: '11', icon: GitBranch,     color: 'text-white'       },
     { label: 'Critical Paths',       value: '9',  icon: AlertTriangle,  color: 'text-red-600'     },
-    { label: 'Avg Risk Score',       value: '94', icon: TrendingUp,     color: 'text-orange-600'  },
+    { label: 'Avg QVSS Score',        value: '9.4', icon: TrendingUp,    color: 'text-orange-600'  },
     { label: 'Crown Jewels at Risk', value: '8',  icon: Target,         color: 'text-purple-600'  },
     { label: 'Entry Points',         value: '6',  icon: Zap,            color: 'text-blue-400'    },
   ]
@@ -801,7 +811,7 @@ function DiscoverTab({ onSelectPath, onOpenResource }) {
             </div>
             <div>
               <div className={`text-xl font-bold ${s.color}`}>{s.value}</div>
-              <div className="text-[10px] text-slate-400 leading-tight">{s.label}</div>
+              <div className="text-[10px] text-slate-300 leading-tight font-medium">{s.label}</div>
             </div>
           </div>
         ))}
@@ -816,7 +826,7 @@ function DiscoverTab({ onSelectPath, onOpenResource }) {
               <span className="text-xs font-semibold text-slate-200">Quick Filters</span>
             </div>
             <div className="mb-3">
-              <div className="text-[10px] text-slate-400 font-medium uppercase tracking-wider mb-2">Severity</div>
+              <div className="text-[10px] text-slate-300 font-semibold uppercase tracking-wider mb-2">Severity</div>
               <div className="space-y-1">
                 {[['all','All',11],['CRITICAL','Critical',9],['HIGH','High',2],['MEDIUM','Medium',0]].map(([val,label,count]) => (
                   <button
@@ -836,7 +846,7 @@ function DiscoverTab({ onSelectPath, onOpenResource }) {
               </div>
             </div>
             <div>
-              <div className="text-[10px] text-slate-400 font-medium uppercase tracking-wider mb-2">Entry Point Type</div>
+              <div className="text-[10px] text-slate-300 font-semibold uppercase tracking-wider mb-2">Entry Point Type</div>
               <div className="space-y-1">
                 {entryPoints.map(ep => (
                   <div key={ep.label} className="flex items-center justify-between px-2 py-1 text-[11px] text-slate-300">
@@ -849,7 +859,7 @@ function DiscoverTab({ onSelectPath, onOpenResource }) {
           </div>
 
           <div className="bg-slate-800 rounded-lg border border-slate-700 p-3">
-            <div className="text-[10px] text-slate-400 font-medium uppercase tracking-wider mb-2">Time Range</div>
+            <div className="text-[10px] text-slate-300 font-semibold uppercase tracking-wider mb-2">Time Range</div>
             {['Last 7 Days','Last 30 Days','Last 90 Days'].map((t, i) => (
               <button key={t} className={`w-full text-left px-2 py-1 text-[11px] rounded transition-colors
                 ${i === 1 ? 'bg-indigo-900/30 text-indigo-300 font-medium' : 'text-slate-300 hover:bg-slate-700/40'}`}>
@@ -884,7 +894,7 @@ function DiscoverTab({ onSelectPath, onOpenResource }) {
           </div>
 
           {/* Column headers — includes new Resources column */}
-          <div className="grid grid-cols-[64px_1fr_100px_80px_70px_120px_80px_90px] gap-2 px-3 py-2 bg-slate-700/40 border-b border-slate-700 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+          <div className="grid grid-cols-[64px_1fr_100px_80px_70px_120px_80px_90px] gap-2 px-3 py-2 bg-slate-700/60 border-b border-slate-600 text-[10px] font-bold text-slate-200 uppercase tracking-wider">
             <div>CID</div>
             <div>Attack Path Title / Chain</div>
             <div>Crown Jewel</div>
@@ -894,7 +904,7 @@ function DiscoverTab({ onSelectPath, onOpenResource }) {
               <Link2 className="w-3 h-3" />
               Resources
             </div>
-            <div>Risk Score</div>
+            <div>QVSS Score</div>
             <div>Action</div>
           </div>
 
@@ -908,12 +918,12 @@ function DiscoverTab({ onSelectPath, onOpenResource }) {
                   className="grid grid-cols-[64px_1fr_100px_80px_70px_120px_80px_90px] gap-2 px-3 py-3 items-center hover:bg-slate-700/40 transition-colors group cursor-pointer"
                   onClick={() => onSelectPath(ap)}
                 >
-                  <div className="text-[11px] font-mono text-slate-400 font-semibold">{ap.id}</div>
+                  <div className="text-[11px] font-mono text-slate-200 font-semibold">{ap.id}</div>
                   <div>
                     <div className="text-[12px] font-semibold text-white group-hover:text-indigo-300 leading-tight mb-0.5">{ap.title}</div>
-                    <div className="text-[10px] font-mono text-slate-400 leading-tight truncate">{ap.path}</div>
+                    <div className="text-[10px] font-mono text-slate-300 leading-tight truncate">{ap.path}</div>
                   </div>
-                  <div className="text-[10px] text-slate-300 leading-tight">{ap.target}</div>
+                  <div className="text-[10px] text-slate-100 leading-tight font-medium">{ap.target}</div>
                   <div><SeverityBadge level={ap.severity} /></div>
                   <div className="text-[11px] text-slate-300">{ap.hops} hops / {ap.gaps} gaps</div>
 
@@ -921,13 +931,16 @@ function DiscoverTab({ onSelectPath, onOpenResource }) {
                   <div className="flex flex-col gap-1 items-start" onClick={e => e.stopPropagation()}>
                     <div className="flex items-center gap-1">
                       <span className="text-[11px] font-semibold text-slate-200">{ap.resourceIds.length}</span>
-                      <span className="text-[10px] text-slate-400">resources</span>
+                      <span className="text-[10px] text-slate-300">resources</span>
                     </div>
                     {sharedCount > 0 ? (
-                      <span className="text-[9px] bg-orange-900/30 text-orange-300 border border-orange-700/50 px-1.5 py-0.5 rounded-full font-semibold flex items-center gap-0.5">
+                      <button
+                        onClick={e => openSharedPopup(e, ap)}
+                        className="text-[9px] bg-orange-900/30 text-orange-300 border border-orange-700/50 px-1.5 py-0.5 rounded-full font-semibold flex items-center gap-0.5 hover:bg-orange-900/60 hover:border-orange-500 transition-colors cursor-pointer"
+                      >
                         <Link2 className="w-2.5 h-2.5" />
                         {sharedCount} shared
-                      </span>
+                      </button>
                     ) : (
                       <span className="text-[9px] text-green-400 bg-green-900/20 border border-green-700/50 px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
                         <CheckCircle className="w-2.5 h-2.5" />
@@ -936,7 +949,7 @@ function DiscoverTab({ onSelectPath, onOpenResource }) {
                     )}
                   </div>
 
-                  <div className={`text-sm font-bold ${ap.score >= 90 ? 'text-red-600' : ap.score >= 75 ? 'text-orange-600' : 'text-yellow-600'}`}>{ap.score}</div>
+                  <div className={`text-sm font-bold ${ap.score >= 9.0 ? 'text-red-600' : ap.score >= 7.5 ? 'text-orange-600' : 'text-yellow-600'}`}>{ap.score}</div>
                   <div>
                     <button
                       onClick={e => { e.stopPropagation(); onSelectPath(ap) }}
@@ -961,6 +974,92 @@ function DiscoverTab({ onSelectPath, onOpenResource }) {
           </div>
         </div>
       </div>
+
+      {/* ── Shared Resources Modal ── */}
+      {sharedPopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70" onClick={() => setSharedPopup(null)}>
+          <div
+            className="bg-slate-800 border border-slate-600 rounded-xl shadow-2xl w-[820px] max-h-[75vh] flex flex-col"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-start justify-between px-5 py-4 border-b border-slate-700 shrink-0">
+              <div>
+                <h3 className="font-bold text-white text-sm flex items-center gap-2">
+                  <Link2 className="w-4 h-4 text-orange-400" />
+                  Shared Resources
+                </h3>
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  Resources on <span className="text-slate-200 font-semibold">AP-{sharedPopup.ap.id}</span> that appear in multiple attack paths
+                </p>
+              </div>
+              <button onClick={() => setSharedPopup(null)} className="text-slate-400 hover:text-white transition-colors ml-4 mt-0.5">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Table */}
+            <div className="overflow-y-auto flex-1">
+              <table className="w-full text-[11px] border-collapse">
+                <thead className="sticky top-0 z-10">
+                  <tr className="bg-slate-700/80 text-slate-300 uppercase tracking-wider text-[9px] font-semibold">
+                    <th className="text-left px-4 py-2.5 w-[200px]">Resource</th>
+                    <th className="text-left px-3 py-2.5 w-[90px]">Type</th>
+                    <th className="text-left px-3 py-2.5 w-[80px]">Severity</th>
+                    <th className="text-left px-3 py-2.5 w-[80px]">Criticality</th>
+                    <th className="text-left px-3 py-2.5">Related Attack Path</th>
+                    <th className="text-left px-3 py-2.5 w-[80px]">Path Severity</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-700/60">
+                  {sharedPopup.resources.flatMap(({ resource, otherPaths }) =>
+                    otherPaths.map((p, pi) => (
+                      <tr key={`${resource.id}-${p.id}`} className="hover:bg-slate-700/30 transition-colors">
+                        {/* Resource name — only show on first row for this resource */}
+                        <td className="px-4 py-2.5 align-top">
+                          {pi === 0 && (
+                            <div>
+                              <div className="font-mono font-semibold text-white text-[11px]">{resource.name}</div>
+                              <div className="text-slate-400 text-[9px] mt-0.5">{resource.ports}</div>
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-3 py-2.5 align-top">
+                          {pi === 0 && (
+                            <span className="text-[9px] bg-slate-700 text-slate-300 border border-slate-600 px-1.5 py-0.5 rounded-full whitespace-nowrap">{resource.type}</span>
+                          )}
+                        </td>
+                        <td className="px-3 py-2.5 align-top">
+                          {pi === 0 && <SeverityBadge level={resource.severity} />}
+                        </td>
+                        <td className="px-3 py-2.5 align-top">
+                          {pi === 0 && (
+                            <span className="text-slate-300 text-[10px]">{resource.criticality}</span>
+                          )}
+                        </td>
+                        <td className="px-3 py-2.5 align-top">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-[9px] bg-indigo-900/40 text-indigo-300 border border-indigo-700/50 px-1.5 py-0.5 rounded shrink-0">AP-{p.id}</span>
+                            <span className="text-slate-300 leading-snug">{p.title}</span>
+                          </div>
+                        </td>
+                        <td className="px-3 py-2.5 align-top">
+                          <SeverityBadge level={p.severity} />
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Footer count */}
+            <div className="px-5 py-2.5 border-t border-slate-700 shrink-0 text-[10px] text-slate-300">
+              {sharedPopup.resources.length} shared resource{sharedPopup.resources.length > 1 ? 's' : ''} · {sharedPopup.resources.reduce((s, r) => s + r.otherPaths.length, 0)} related path entries
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -1012,12 +1111,12 @@ function AnalyzeTab({ selectedPath, onSelectPath, onOpenResource, onNavigateToRe
                     <span className="text-xs font-semibold text-white group-hover:text-indigo-300">{ap.title}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold text-red-600">Score: {ap.score}</span>
+                    <span className="text-sm font-bold text-red-600">QVSS: {ap.score}</span>
                     <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-indigo-400" />
                   </div>
                 </div>
-                <div className="text-[10px] font-mono text-slate-400 bg-slate-700/40 px-2 py-1 rounded">{ap.path}</div>
-                <div className="flex gap-3 mt-1.5 text-[10px] text-slate-400">
+                <div className="text-[10px] font-mono text-slate-300 bg-slate-700/60 px-2 py-1 rounded">{ap.path}</div>
+                <div className="flex gap-3 mt-1.5 text-[10px] text-slate-300">
                   <span>{ap.hops} hops</span>
                   <span>{ap.gaps} gaps chained</span>
                   <span className="font-mono text-indigo-300">{ap.mitre}</span>
@@ -1043,8 +1142,8 @@ function AnalyzeTab({ selectedPath, onSelectPath, onOpenResource, onNavigateToRe
           </button>
           <div className="flex gap-2">
             <StatusPill status={selectedPath.status} />
-            <span className={`text-sm font-bold px-2 py-0.5 rounded ${selectedPath.score >= 90 ? 'bg-red-900/30 text-red-300' : 'bg-orange-900/30 text-orange-300'}`}>
-              Risk {selectedPath.score}
+            <span className={`text-sm font-bold px-2 py-0.5 rounded ${selectedPath.score >= 9.0 ? 'bg-red-900/30 text-red-300' : 'bg-orange-900/30 text-orange-300'}`}>
+              QVSS {selectedPath.score}
             </span>
           </div>
         </div>
@@ -1053,7 +1152,7 @@ function AnalyzeTab({ selectedPath, onSelectPath, onOpenResource, onNavigateToRe
             <h3 className="font-bold text-white text-base">{selectedPath.title}</h3>
             <div className="flex items-center gap-3 mt-1">
               <SeverityBadge level={selectedPath.severity} />
-              <span className="text-[11px] text-slate-400">{selectedPath.hops} hops · {selectedPath.gaps} gaps chained</span>
+              <span className="text-[11px] text-slate-200">{selectedPath.hops} hops · {selectedPath.gaps} gaps chained</span>
               <span className="text-[10px] font-mono text-indigo-400">{selectedPath.mitre}</span>
             </div>
           </div>
@@ -1081,7 +1180,7 @@ function AnalyzeTab({ selectedPath, onSelectPath, onOpenResource, onNavigateToRe
             <div className="flex items-center gap-2 mb-2.5">
               <Package className="w-3.5 h-3.5 text-slate-400" />
               <span className="text-xs font-semibold text-slate-200">Asset Type Breakdown</span>
-              <span className="text-[10px] text-slate-400">— {pathResources.length} assets · {Object.keys(typeCounts).length} types · {selectedPath.hops} hops</span>
+              <span className="text-[10px] text-slate-300">— {pathResources.length} assets · {Object.keys(typeCounts).length} types · {selectedPath.hops} hops</span>
             </div>
             <div className="flex flex-wrap gap-2">
               {Object.entries(typeCounts).map(([type, count]) => (
@@ -1089,7 +1188,7 @@ function AnalyzeTab({ selectedPath, onSelectPath, onOpenResource, onNavigateToRe
                   <span className="text-base leading-none">{typeIcons[type] || '🖥️'}</span>
                   <div>
                     <div className="text-xs font-bold text-white leading-none">{count}</div>
-                    <div className="text-[9px] text-slate-400 leading-tight mt-0.5">{type}</div>
+                    <div className="text-[9px] text-slate-300 leading-tight mt-0.5">{type}</div>
                   </div>
                 </div>
               ))}
@@ -1104,7 +1203,7 @@ function AnalyzeTab({ selectedPath, onSelectPath, onOpenResource, onNavigateToRe
                 <AlertTriangle className="w-3.5 h-3.5 text-red-500" />
                 <div>
                   <div className="text-xs font-bold text-red-300 leading-none">{selectedPath.score}</div>
-                  <div className="text-[9px] text-red-500 leading-tight mt-0.5">Risk Score</div>
+                  <div className="text-[9px] text-red-500 leading-tight mt-0.5">QVSS Score</div>
                 </div>
               </div>
             </div>
@@ -1144,13 +1243,13 @@ function AnalyzeTab({ selectedPath, onSelectPath, onOpenResource, onNavigateToRe
       {/* Attack Path Flow Visualization — edges are clickable to inspect security gaps */}
       <div className="bg-slate-800 rounded-lg border border-slate-700 p-4">
         <div className="flex items-center justify-between mb-1">
-          <h3 className="font-semibold text-white text-sm">Asset Type Breakdown &amp; Attack Flow</h3>
+          <h3 className="font-semibold text-white text-sm">Attack Path Visualization</h3>
           <span className="text-xs text-green-400 font-medium bg-green-900/20 border border-green-700/50 px-2 py-0.5 rounded">Validated</span>
         </div>
-        <p className="text-[11px] text-slate-400 mb-1">
-          Entry: <span className="font-medium text-slate-200">{selectedPath.entry}</span> &nbsp;→&nbsp; Crown Jewel: <span className="font-medium text-red-300">{selectedPath.target}</span>
+        <p className="text-[11px] text-slate-300 mb-1">
+          Entry: <span className="font-semibold text-white">{selectedPath.entry}</span> &nbsp;→&nbsp; Crown Jewel: <span className="font-semibold text-red-300">{selectedPath.target}</span>
         </p>
-        <p className="text-[10px] text-indigo-300 mb-4 flex items-center gap-1">
+        <p className="text-[10px] text-indigo-200 mb-4 flex items-center gap-1 font-medium">
           <ArrowRight className="w-3 h-3" /> Click any edge arrow to inspect the security gap · Hover any node for asset metadata
         </p>
         <div className="flex items-center gap-0 overflow-x-auto pb-44">
@@ -1170,8 +1269,8 @@ function AnalyzeTab({ selectedPath, onSelectPath, onOpenResource, onNavigateToRe
                         : 'border-transparent hover:bg-indigo-900/30 hover:border-indigo-700'}`}
                     title="Click to inspect security gap"
                   >
-                    <span className="text-[9px] text-indigo-300 font-medium mb-0.5 whitespace-nowrap">{node.edge}</span>
-                    <ArrowRight className={`w-4 h-4 ${selectedEdge === i ? 'text-indigo-400' : 'text-slate-400'}`} />
+                    <span className="text-[10px] text-indigo-200 font-semibold mb-0.5 whitespace-nowrap">{node.edge}</span>
+                    <ArrowRight className={`w-4 h-4 ${selectedEdge === i ? 'text-indigo-300' : 'text-slate-300'}`} />
                   </button>
                 )}
                 {/* Hoverable node */}
@@ -1217,8 +1316,8 @@ function AnalyzeTab({ selectedPath, onSelectPath, onOpenResource, onNavigateToRe
                           { k: 'Exploitability',v: resource.exploitability },
                           { k: 'Criticality',   v: resource.criticality },
                         ].map(row => (
-                          <div key={row.k} className="flex gap-2 text-[9px]">
-                            <span className="text-slate-400 w-20 shrink-0">{row.k}</span>
+                          <div key={row.k} className="flex gap-2 text-[10px]">
+                            <span className="text-slate-300 w-20 shrink-0">{row.k}</span>
                             <span className={`font-medium ${row.k === 'Exploitability' && (row.v === 'Critical' || row.v === 'High') ? 'text-red-600' : 'text-slate-200'}`}>{row.v}</span>
                           </div>
                         ))}
@@ -1233,41 +1332,41 @@ function AnalyzeTab({ selectedPath, onSelectPath, onOpenResource, onNavigateToRe
 
         {/* Security Gap detail — shown when an edge is selected */}
         {selectedEdge !== null && selectedPath.flowNodes[selectedEdge] && (
-          <div className="mt-3 border border-indigo-700 bg-indigo-900/20 rounded-lg p-3">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-[10px] font-semibold text-indigo-300 bg-indigo-800/40 px-2 py-0.5 rounded">
+          <div className="mt-3 border border-indigo-500/60 bg-indigo-950/60 rounded-lg p-3.5">
+            <div className="flex items-center gap-2 mb-2.5">
+              <span className="text-[11px] font-bold text-indigo-100 bg-indigo-600/50 border border-indigo-400/40 px-2 py-0.5 rounded">
                 Security Gap #{selectedEdge}
               </span>
-              <span className="text-[11px] font-semibold text-white">
+              <span className="text-xs font-bold text-white">
                 {selectedPath.flowNodes[selectedEdge].edge}
               </span>
-              <button onClick={() => setSelectedEdge(null)} className="ml-auto text-indigo-400 hover:text-indigo-400">
+              <button onClick={() => setSelectedEdge(null)} className="ml-auto text-indigo-300 hover:text-white transition-colors">
                 <X className="w-3.5 h-3.5" />
               </button>
             </div>
             {selectedPath.gaps_detail[selectedEdge - 1] && (
-              <div className="space-y-1 mb-2">
-                <div className="flex gap-2 text-[10px]">
-                  <span className="text-slate-400 font-medium w-28 shrink-0">{selectedPath.gaps_detail[selectedEdge - 1].label}</span>
-                  <span className="text-slate-300">{selectedPath.gaps_detail[selectedEdge - 1].value}</span>
+              <div className="space-y-1 mb-2.5">
+                <div className="flex gap-2 text-[11px]">
+                  <span className="text-indigo-200 font-semibold w-28 shrink-0">{selectedPath.gaps_detail[selectedEdge - 1].label}</span>
+                  <span className="text-slate-100 leading-relaxed">{selectedPath.gaps_detail[selectedEdge - 1].value}</span>
                 </div>
               </div>
             )}
-            <div className="text-[10px] text-indigo-300">Click another edge arrow to inspect, or × to dismiss.</div>
+            <div className="text-[10px] text-indigo-300 font-medium">Click another edge arrow to inspect, or × to dismiss.</div>
           </div>
         )}
       </div>
 
-      {/* ── 5. Asset Metadata Enrichment (diagram order: after flow graph) ── */}
+      {/* ── 5. Asset Metadata (diagram order: after flow graph) ── */}
       <div className="bg-slate-800 rounded-lg border border-slate-700 p-4">
         <div className="flex items-center justify-between mb-1">
-          <h3 className="font-semibold text-white text-sm">Asset Metadata Enrichment</h3>
+          <h3 className="font-semibold text-white text-sm">Asset Metadata</h3>
           <span className="text-[10px] text-teal-400 bg-teal-900/20 border border-teal-700/50 px-2 py-0.5 rounded font-medium flex items-center gap-1">
             <Link2 className="w-3 h-3" />
             {sharedIds.length > 0 ? `${sharedIds.length} shared across paths` : 'All resources unique to this path'}
           </span>
         </div>
-        <p className="text-[11px] text-slate-400 mb-3">Qualys-enriched asset context — OS, services, criticality, exploitability, and cross-path membership</p>
+        <p className="text-[11px] text-slate-300 mb-3">Qualys-enriched asset context — OS, services, criticality, exploitability, and cross-path membership</p>
         <div className="grid grid-cols-2 gap-3">
           {pathResources.map(a => {
             const otherPaths = getPathsByResourceId(a.id).filter(p => p.id !== selectedPath.id)
@@ -1328,11 +1427,11 @@ function AnalyzeTab({ selectedPath, onSelectPath, onOpenResource, onNavigateToRe
         </div>
       </div>
 
-      {/* ── 6. Contextual Risk Scoring ── */}
+      {/* ── 6. Asset Risk Scoring ── */}
       <div className="bg-slate-800 rounded-lg border border-slate-700 p-4">
         <div className="flex items-center gap-2 mb-3">
           <TrendingUp className="w-4 h-4 text-indigo-400" />
-          <h3 className="font-semibold text-white text-sm">Contextual Risk Scoring</h3>
+          <h3 className="font-semibold text-white text-sm">Asset Risk Scoring</h3>
         </div>
         <p className="text-[11px] text-slate-400 mb-3">
           Dynamic scores adjusted by topological position — elevated for chokepoints, suppressed for isolated assets.
@@ -1373,7 +1472,7 @@ function AnalyzeTab({ selectedPath, onSelectPath, onOpenResource, onNavigateToRe
       <div className="bg-slate-800 rounded-lg border border-slate-700 p-4">
         <div className="flex items-center gap-2 mb-3">
           <AlertTriangle className="w-4 h-4 text-red-500" />
-          <h3 className="font-semibold text-white text-sm">Toxic Combination Identification</h3>
+          <h3 className="font-semibold text-white text-sm">Toxic Combinations</h3>
         </div>
         <div className="space-y-3">
           {TOXIC_COMBOS.map(tc => {
@@ -1416,77 +1515,6 @@ function AnalyzeTab({ selectedPath, onSelectPath, onOpenResource, onNavigateToRe
         </div>
       </div>
 
-      {/* ── 8. Privilege Escalation Mapping ── */}
-      <div className="bg-slate-800 rounded-lg border border-slate-700 p-4">
-        <div className="flex items-center justify-between mb-1">
-          <h3 className="font-semibold text-white text-sm">Privilege Escalation Mapping — Standard User to Domain Admin</h3>
-          <span className="text-xs text-green-400 font-medium bg-green-900/20 border border-green-700/50 px-2 py-0.5 rounded">MITRE ATT&CK Mapped</span>
-        </div>
-        <p className="text-[11px] text-slate-400 mb-4">Step-by-step escalation chain from least-privileged account to full domain compromise</p>
-        <div className="flex flex-wrap gap-1.5 mb-4">
-          {['UAC Bypass','Kerberoast','Kernel Exploit','Token Impersonation','WriteDACL','DCSync'].map(t => (
-            <span key={t} className="text-[10px] bg-slate-700 text-slate-300 border border-slate-700 px-2 py-0.5 rounded-full">{t}</span>
-          ))}
-        </div>
-        <div className="space-y-2">
-          {escalationSteps.map((s, i) => (
-            <button key={s.step} onClick={() => setExpandedStep(expandedStep === i ? null : i)}
-              className="w-full flex gap-3 items-start text-left hover:bg-slate-700/40 rounded-lg p-1.5 transition-colors group">
-              <div className="flex flex-col items-center shrink-0">
-                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white
-                  ${s.level === 'CRITICAL' ? 'bg-red-900/200' : s.level === 'HIGH' ? 'bg-orange-900/200' : s.level === 'MEDIUM' ? 'bg-yellow-900/200' : 'bg-blue-400'}`}>
-                  {i + 1}
-                </div>
-                {i < escalationSteps.length - 1 && <div className="w-px h-4 bg-slate-200 mt-0.5" />}
-              </div>
-              <div className="flex-1 pb-1">
-                <div className="flex items-center gap-2 mb-0.5">
-                  <span className="text-xs font-semibold text-white">{s.step}</span>
-                  <SeverityBadge level={s.level} />
-                  <span className="text-[10px] font-mono text-indigo-300">{s.mitre}</span>
-                  <ChevronRight className={`w-3.5 h-3.5 text-slate-400 ml-auto transition-transform ${expandedStep === i ? 'rotate-90' : ''}`} />
-                </div>
-                {expandedStep === i && (
-                  <p className="text-[11px] text-slate-400 mt-1 bg-slate-700/40 px-2 py-1.5 rounded border border-slate-700">{s.desc}</p>
-                )}
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* ── 9. Identity & Lateral Movement ── */}
-      <div className="bg-slate-800 rounded-lg border border-slate-700 p-4">
-        <div className="flex items-center gap-2 mb-1">
-          <Users className="w-4 h-4 text-purple-600" />
-          <h3 className="font-semibold text-white text-sm">Identity &amp; Lateral Movement</h3>
-        </div>
-        <p className="text-[11px] text-slate-400 mb-3">AD identities exposed on this path — group memberships, GPO risks, and escalation potential</p>
-        <div className="space-y-2">
-          {[
-            { name: 'svc_backup',               type: 'Service Account',      risk: 'CRITICAL', badge: 'WriteDACL / Kerberoastable', detail: 'Kerberoastable SPN with weak 8-char password · WriteDACL on AdminSDHolder' },
-            { name: 'admin.jones',               type: 'Domain User',           risk: 'CRITICAL', badge: 'Domain Admin',               detail: 'Member of Domain Admins · GPO full-control · Active login sessions on Tier-0' },
-            { name: 'Unrestricted PowerShell GPO',type: 'Group Policy Object',  risk: 'HIGH',     badge: 'GPO Exposure',               detail: 'PowerShell execution unrestricted via GPO — allows lateral tool deployment' },
-            { name: 'Unconstrained Delegation',  type: 'Kerberos Risk',         risk: 'CRITICAL', badge: 'Kerberos / TGT Capture',     detail: 'svc_backup permitted for unconstrained delegation — TGT of any authenticating user captured' },
-          ].map(id => (
-            <div key={id.name} className="border border-slate-700 rounded-lg p-3 flex items-center gap-3">
-              <div className="w-7 h-7 rounded-full bg-purple-900/20 border border-purple-700/50 flex items-center justify-center shrink-0">
-                <User className="w-3.5 h-3.5 text-purple-600" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                  <span className="text-xs font-semibold text-white font-mono">{id.name}</span>
-                  <span className="text-[9px] bg-slate-700 text-slate-300 border border-slate-700 px-1.5 py-0.5 rounded-full">{id.type}</span>
-                  <span className="text-[9px] bg-purple-900/20 text-purple-700 border border-purple-700/50 px-1.5 py-0.5 rounded-full">{id.badge}</span>
-                </div>
-                <div className="text-[10px] text-slate-400">{id.detail}</div>
-              </div>
-              <SeverityBadge level={id.risk} />
-            </div>
-          ))}
-        </div>
-      </div>
-
       {/* ── Ready to Remediate? Decision Gate ─────────────────────────── */}
       <div className="bg-slate-800 rounded-lg border-2 border-green-700/50 p-5">
         <div className="flex flex-col items-center text-center gap-3">
@@ -1496,7 +1524,7 @@ function AnalyzeTab({ selectedPath, onSelectPath, onOpenResource, onNavigateToRe
           <div>
             <h3 className="font-bold text-white text-base mb-1">Ready to Remediate?</h3>
             <p className="text-[11px] text-slate-400 max-w-md">
-              You've traced the full attack chain, reviewed shared resources, contextual risk scores, and toxic combinations.
+              You've traced the full attack chain, reviewed shared resources, contextual QVSS scores, and toxic combinations.
               Take action on <span className="font-semibold text-slate-200">AP-{selectedPath.id}</span> now.
             </p>
           </div>
@@ -1517,13 +1545,67 @@ function AnalyzeTab({ selectedPath, onSelectPath, onOpenResource, onNavigateToRe
   )
 }
 
+// ─── Alternate remediation options helper ────────────────────────────────────
+const getAlternates = (action) => {
+  const riskMap   = { CRITICAL: 88, HIGH: 72, MEDIUM: 52, LOW: 28 }
+  const base      = riskMap[action.priority] || 50
+  const effortNext = { Low: 'Medium', Medium: 'High', High: 'High' }
+  const etaNext    = { Low: '1 day',  Medium: '1 week', High: '2 weeks' }
+  return [
+    {
+      label: 'Compensating Control',
+      badge: 'Quick',
+      badgeColor: 'bg-yellow-900/40 text-yellow-300 border border-yellow-700/50',
+      desc: 'Deploy monitoring, alerting and access restrictions as an interim measure while planning full remediation.',
+      effort: 'Low',
+      eta: '2–4 hours',
+      riskReduction: Math.max(base - 32, 10),
+    },
+    {
+      label: 'Recommended Fix',
+      badge: '★ Preferred',
+      badgeColor: 'bg-emerald-900/40 text-emerald-300 border border-emerald-700/50',
+      desc: action.action,
+      effort: action.effort,
+      eta: action.eta,
+      riskReduction: base,
+      preferred: true,
+    },
+    {
+      label: 'Hardened Implementation',
+      badge: 'Max Coverage',
+      badgeColor: 'bg-blue-900/40 text-blue-300 border border-blue-700/50',
+      desc: 'Full remediation with additional defense-in-depth controls, automated policy enforcement, and continuous monitoring.',
+      effort: effortNext[action.effort] || 'High',
+      eta: etaNext[action.effort] || '1 week',
+      riskReduction: Math.min(base + 8, 97),
+    },
+  ]
+}
+
 // ─── Remediate Tab ────────────────────────────────────────────────────────────
-function RemediateTab({ selectedPath, onSelectPath, onOpenResource }) {
-  const [actionStates, setActionStates] = useState({})
-  const [roiTooltip,   setRoiTooltip]   = useState(null)   // key of action whose tooltip is open
+function RemediateTab({ selectedPath, onSelectPath, onOpenResource, onNavigateToAnalyze }) {
+  const [actionStates,    setActionStates]    = useState({})
+  const [roiTooltip,      setRoiTooltip]      = useState(null)  // key whose ROI panel is open
+  const [detailOpen,      setDetailOpen]      = useState(null)  // key whose detail/alts panel is open
+  const [remediatedBanner, setRemediatedBanner] = useState(false)
 
   const toggleAction = (key, newState) => {
     setActionStates(prev => ({ ...prev, [key]: prev[key] === newState ? null : newState }))
+  }
+
+  const markComplete = (key) => {
+    setActionStates(prev => {
+      const next = { ...prev, [key]: prev[key] === 'complete' ? null : 'complete' }
+      if (next[key] === 'complete') setRemediatedBanner(true)
+      return next
+    })
+  }
+
+  const openDetail = (key) => {
+    const opening = detailOpen !== key
+    setDetailOpen(opening ? key : null)
+    if (opening) setActionStates(prev => ({ ...prev, [key]: 'detail' }))
   }
 
   const actionCount = selectedPath ? selectedPath.remediation.length : 12
@@ -1552,6 +1634,16 @@ function RemediateTab({ selectedPath, onSelectPath, onOpenResource }) {
 
   return (
     <div className="space-y-5">
+      {/* Back to Analyze */}
+      {onNavigateToAnalyze && (
+        <button
+          onClick={onNavigateToAnalyze}
+          className="text-[11px] text-slate-400 hover:text-indigo-400 flex items-center gap-1 transition-colors"
+        >
+          ← Back to Analyze
+        </button>
+      )}
+
       {/* Stats — 3 cards matching diagram */}
       <div className="grid grid-cols-3 gap-3">
         {summaryStats.map(s => (
@@ -1582,6 +1674,20 @@ function RemediateTab({ selectedPath, onSelectPath, onOpenResource }) {
           Prioritized remediation steps ranked by risk impact. Actions on shared resources reduce risk across multiple paths simultaneously.
         </p>
 
+        {/* ── Remediated success banner ── */}
+        {remediatedBanner && (
+          <div className="mb-3 flex items-center gap-3 bg-emerald-950/60 border border-emerald-600/70 rounded-lg px-4 py-3">
+            <CheckCircle className="w-5 h-5 text-emerald-400 shrink-0" />
+            <div className="flex-1">
+              <p className="text-emerald-300 font-semibold text-sm">Attack Path has been remediated</p>
+              <p className="text-emerald-500 text-[10px] mt-0.5">You have successfully remediated this attack path.</p>
+            </div>
+            <button onClick={() => setRemediatedBanner(false)} className="text-emerald-600 hover:text-emerald-300 transition-colors shrink-0">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
         <div className="space-y-2">
           {allActions.map((action, idx) => {
             const c   = priorityColor[action.priority] || priorityColor.LOW
@@ -1595,12 +1701,14 @@ function RemediateTab({ selectedPath, onSelectPath, onOpenResource }) {
             const crossPathCount = affectedPaths.length
 
             const { score: roiScore, breakdown: roiB } = computeRoi(action)
-            const isRoiOpen  = roiTooltip === key
-            const scoreColor = roiScore >= 70 ? 'text-green-400' : roiScore >= 40 ? 'text-orange-500' : 'text-slate-400'
-            const borderColor = roiScore >= 70 ? 'border-green-600/50' : roiScore >= 40 ? 'border-orange-600/50' : 'border-slate-700'
+            const isRoiOpen    = roiTooltip === key
+            const isDetailOpen = detailOpen === key
+            const scoreColor   = roiScore >= 70 ? 'text-green-400' : roiScore >= 40 ? 'text-orange-500' : 'text-slate-400'
+            const borderColor  = roiScore >= 70 ? 'border-green-600/50' : roiScore >= 40 ? 'border-orange-600/50' : 'border-slate-700'
+            const alternates   = getAlternates(action)
 
             return (
-              <div key={key} className={`border ${c.border} ${c.bg} rounded-lg overflow-hidden`}>
+              <div key={key} className={`border ${c.border} ${c.bg} rounded-lg overflow-hidden transition-opacity ${state === 'complete' ? 'opacity-50' : ''}`}>
                 {/* ── Main action row ── */}
                 <div className="p-3 flex items-center gap-3">
                   <span className={`w-2 h-2 rounded-full shrink-0 ${c.dot}`} />
@@ -1624,9 +1732,10 @@ function RemediateTab({ selectedPath, onSelectPath, onOpenResource }) {
                           Affects {crossPathCount} paths — click to view
                         </button>
                       )}
-                      {state === 'detail'      && <span className="text-sky-400 font-medium flex items-center gap-1"><Eye className="w-3 h-3" />Viewed Detail</span>}
+                      {state === 'detail'     && <span className="text-sky-400 font-medium flex items-center gap-1"><Eye className="w-3 h-3" />Viewed Detail</span>}
                       {state === 'suppressed' && <span className="text-slate-400 font-medium flex items-center gap-1"><EyeOff className="w-3 h-3" />Suppressed</span>}
                       {state === 'ticket'     && <span className="text-blue-400 font-medium flex items-center gap-1"><Ticket className="w-3 h-3" />Ticket Created</span>}
+                      {state === 'complete'   && <span className="text-emerald-400 font-medium flex items-center gap-1"><CheckCircle className="w-3 h-3" />Completed</span>}
                     </div>
                   </div>
                   {/* ROI badge — click to expand/collapse breakdown */}
@@ -1639,9 +1748,9 @@ function RemediateTab({ selectedPath, onSelectPath, onOpenResource }) {
                   </button>
                 <div className="flex gap-1.5 shrink-0">
                   <button
-                    onClick={() => toggleAction(key, 'detail')}
+                    onClick={() => openDetail(key)}
                     className={`flex items-center gap-1 text-[10px] px-2 py-1 rounded border transition-colors
-                      ${state === 'detail' ? 'bg-sky-600 text-white border-sky-600' : 'border-sky-600 text-sky-400 hover:bg-sky-900/20'}`}
+                      ${isDetailOpen ? 'bg-sky-600 text-white border-sky-600' : 'border-sky-600 text-sky-400 hover:bg-sky-900/20'}`}
                   >
                     <Eye className="w-3 h-3" /> More Detail
                   </button>
@@ -1659,8 +1768,52 @@ function RemediateTab({ selectedPath, onSelectPath, onOpenResource }) {
                   >
                     <EyeOff className="w-3 h-3" /> Suppress
                   </button>
+                  <button
+                    onClick={() => markComplete(key)}
+                    className={`flex items-center gap-1 text-[10px] px-2 py-1 rounded border transition-colors
+                      ${state === 'complete' ? 'bg-emerald-600 text-white border-emerald-600' : 'border-emerald-600 text-emerald-400 hover:bg-emerald-900/20'}`}
+                  >
+                    <CheckCircle className="w-3 h-3" /> Mark Complete
+                  </button>
                 </div>
                 </div>{/* end main action row */}
+
+                {/* ── Alternate Remediation Options panel ── */}
+                {isDetailOpen && (
+                  <div className="border-t border-slate-700 bg-slate-900/80 p-3 text-[10px] leading-relaxed">
+                    <div className="flex items-center justify-between mb-2.5">
+                      <span className="font-semibold text-slate-100 text-[11px] flex items-center gap-1.5">
+                        🔀 Alternate Remediation Options
+                      </span>
+                      <button onClick={() => setDetailOpen(null)} className="text-slate-400 hover:text-white text-xs">✕ close</button>
+                    </div>
+                    <div className="space-y-2">
+                      {alternates.map((alt, i) => (
+                        <div key={i} className={`rounded-lg border p-2.5 ${alt.preferred ? 'border-emerald-700/60 bg-emerald-900/10' : 'border-slate-700 bg-slate-800/50'}`}>
+                          <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center gap-2">
+                              <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded ${alt.badgeColor}`}>{alt.badge}</span>
+                              <span className="text-[11px] font-semibold text-slate-200">{alt.label}</span>
+                            </div>
+                            {/* Risk Reduction % */}
+                            <div className="flex items-center gap-1 shrink-0">
+                              <TrendingUp className={`w-3 h-3 ${alt.riskReduction >= 70 ? 'text-emerald-400' : alt.riskReduction >= 45 ? 'text-orange-400' : 'text-slate-400'}`} />
+                              <span className={`font-bold text-[13px] font-mono ${alt.riskReduction >= 70 ? 'text-emerald-400' : alt.riskReduction >= 45 ? 'text-orange-400' : 'text-slate-400'}`}>
+                                {alt.riskReduction}%
+                              </span>
+                              <span className="text-slate-500 text-[9px]">risk↓</span>
+                            </div>
+                          </div>
+                          <p className="text-slate-400 mb-1.5 leading-snug">{alt.desc}</p>
+                          <div className="flex gap-4 text-slate-500">
+                            <span className="flex items-center gap-1"><Wrench className="w-2.5 h-2.5" /> {alt.effort}</span>
+                            <span className="flex items-center gap-1"><Clock className="w-2.5 h-2.5" /> {alt.eta}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* ── ROI Breakdown panel (inline, no z-index needed) ── */}
                 {isRoiOpen && (
@@ -2808,13 +2961,9 @@ export default function AttackPathInsights() {
   ]
 
   const tabs = [
-    { id: 'discover',    label: '01  Discover',                        icon: Eye,       desc: 'Browse & filter attack paths' },
-    { id: 'analyze',     label: '02  Analyze',                         icon: Target,    desc: 'Drill into a specific path'  },
-    { id: 'remediate',   label: '03  Remediate',                       icon: Wrench,    desc: 'Recommended remediation actions' },
-    { id: 'initial',     label: '04  Initial Configuration',           icon: Zap,       desc: 'Step-by-step onboarding wizard' },
-    { id: 'configure',   label: '05  Configuration',                   icon: Sliders,   desc: 'Sensor fabric & policy setup' },
-    { id: 'cr-initial',  label: '06  Current Release Initial Config',  icon: Tag,       desc: 'Tag selection & IP whitelist wizard' },
-    { id: 'cr-config',   label: '07  Current Release Config',          icon: Settings2, desc: 'Tag selection & IP whitelist — flat view' },
+    { id: 'discover',   label: '01  Discover',   icon: Eye,    desc: 'Browse & filter attack paths' },
+    { id: 'analyze',    label: '02  Analyze',    icon: Target, desc: 'Drill into a specific path'  },
+    { id: 'remediate',  label: '03  Remediate',  icon: Wrench, desc: 'Recommended remediation actions' },
   ]
 
   const handleSelectPath = (path) => {
@@ -2883,7 +3032,7 @@ export default function AttackPathInsights() {
                 <div>
                   <div className="flex items-center gap-2 mb-1">
                     <GitBranch className="w-5 h-5 text-indigo-400" />
-                    <h1 className="text-lg font-bold text-white">Attack Path Insights</h1>
+                    <h1 className="text-lg font-bold text-white">Attack Paths</h1>
                   </div>
                   <p className="text-[11px] text-slate-400">Qualys TotalCloud — Adversarial mapping, analysis &amp; risk-correlated remediation</p>
                 </div>
@@ -2902,19 +3051,14 @@ export default function AttackPathInsights() {
                   >
                     <tab.icon className="w-4 h-4" />
                     <span>{tab.label}</span>
-                    {tab.id === 'analyze' && selectedPath && (
-                      <span className="text-[10px] bg-indigo-800/40 text-indigo-300 px-1.5 py-0.5 rounded-full font-semibold">
-                        CID {selectedPath.id}
-                      </span>
-                    )}
                   </button>
                 ))}
               </div>
 
               {/* Tab content */}
               {activeTab === 'discover'   && <DiscoverTab onSelectPath={handleSelectPath} onOpenResource={handleOpenResource} />}
-              {activeTab === 'analyze'    && <AnalyzeTab  selectedPath={selectedPath} onSelectPath={(p) => { setSelectedPath(p) }} onOpenResource={handleOpenResource} onNavigateToRemediate={() => setActiveTab('remediate')} />}
-              {activeTab === 'remediate'  && <RemediateTab selectedPath={selectedPath} onSelectPath={handleSelectPath} onOpenResource={handleOpenResource} />}
+              {activeTab === 'analyze'    && <AnalyzeTab  selectedPath={selectedPath} onSelectPath={(p) => { setSelectedPath(p); if (!p) setActiveTab('discover') }} onOpenResource={handleOpenResource} onNavigateToRemediate={() => setActiveTab('remediate')} />}
+              {activeTab === 'remediate'  && <RemediateTab selectedPath={selectedPath} onSelectPath={handleSelectPath} onOpenResource={handleOpenResource} onNavigateToAnalyze={() => setActiveTab('analyze')} />}
               {activeTab === 'initial'    && <InitialConfigurationTab />}
               {activeTab === 'configure'  && <ConfigurationTab />}
               {activeTab === 'cr-initial' && <CurrentReleaseInitialConfigTab />}
