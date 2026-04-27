@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import AttackPathQualys from './components/AttackPathQualys'
 import AttackPathInsights from './components/AttackPathInsights'
+import RiskManagementPage from './components/RiskManagementPage'
 
 export default function App() {
   const [route, setRoute] = useState(window.location.hash)
@@ -11,6 +12,7 @@ export default function App() {
     return () => window.removeEventListener('hashchange', onHash)
   }, [])
 
-  if (route === '#/insights') return <AttackPathInsights />
+  if (route === '#/insights')         return <AttackPathInsights />
+  if (route === '#/risk-management')  return <RiskManagementPage />
   return <AttackPathQualys />
 }

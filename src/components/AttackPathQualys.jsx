@@ -681,6 +681,10 @@ export default function AttackPathQualys() {
               {etmNavItems.map(item => (
                 <button
                   key={item.label}
+                  onClick={() => {
+                    if (item.label === 'Risk Management') window.location.hash = '/risk-management'
+                    if (item.label === 'Attack Path')     window.location.hash = '/insights'
+                  }}
                   className={`w-full flex items-center gap-2.5 px-3 py-2 text-left text-[11px] transition-colors
                     ${item.active
                       ? 'bg-indigo-600 text-white font-medium'
