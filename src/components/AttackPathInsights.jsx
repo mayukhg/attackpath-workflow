@@ -2945,7 +2945,7 @@ function CurrentReleaseConfigTab() {
 }
 
 // ─── Main Component ────────────────────────────────────────────────────────────
-export default function AttackPathInsights() {
+export default function AttackPathInsights({ embedded = false }) {
   const [activeTab,       setActiveTab]       = useState('discover')
   const [selectedPath,    setSelectedPath]    = useState(null)
   const [resourcePanelId, setResourcePanelId] = useState(null)  // null = panel closed
@@ -2957,7 +2957,6 @@ export default function AttackPathInsights() {
     { label: 'Dashboard',            icon: LayoutDashboard },
     { label: 'Inventory',            icon: Package },
     { label: 'Risk Management',      icon: ShieldAlert },
-    { label: 'Attack Path',          icon: GitBranch, active: true },
   ]
 
   const tabs = [
@@ -2979,10 +2978,67 @@ export default function AttackPathInsights() {
     setResourcePanelId(null)
   }
 
+  // ── Shared inner content (tabs + tab body) ──────────────────────────────────
+  const innerContent = (
+    <div className={embedded ? 'flex flex-col h-full bg-slate-900' : ''}>
+      {/* Page heading — hidden when embedded */}
+      {!embedded && (
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <GitBranch className="w-5 h-5 text-indigo-400" />
+              <h1 className="text-lg font-bold text-white">Attack Paths</h1>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tabs */}
+      <div className={`flex border-b border-slate-700 gap-1 ${embedded ? 'px-5 pt-4 shrink-0' : 'mb-5'}`}>
+        {tabs.map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px rounded-t-lg
+              ${activeTab === tab.id
+                ? 'border-indigo-600 text-indigo-400 bg-indigo-900/20'
+                : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-700/40'}`}
+          >
+            <tab.icon className="w-4 h-4" />
+            <span>{tab.label}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Tab content */}
+      <div className={embedded ? 'flex-1 overflow-y-auto px-5 py-4' : ''}>
+        {activeTab === 'discover'   && <DiscoverTab onSelectPath={handleSelectPath} onOpenResource={handleOpenResource} />}
+        {activeTab === 'analyze'    && <AnalyzeTab  selectedPath={selectedPath} onSelectPath={(p) => { setSelectedPath(p); if (!p) setActiveTab('discover') }} onOpenResource={handleOpenResource} onNavigateToRemediate={() => setActiveTab('remediate')} />}
+        {activeTab === 'remediate'  && <RemediateTab selectedPath={selectedPath} onSelectPath={handleSelectPath} onOpenResource={handleOpenResource} onNavigateToAnalyze={() => setActiveTab('analyze')} />}
+        {activeTab === 'initial'    && <InitialConfigurationTab />}
+        {activeTab === 'configure'  && <ConfigurationTab />}
+        {activeTab === 'cr-initial' && <CurrentReleaseInitialConfigTab />}
+        {activeTab === 'cr-config'  && <CurrentReleaseConfigTab />}
+      </div>
+
+      {/* Resource Detail Panel */}
+      {resourcePanelId && (
+        <ResourceDetailPanel
+          resourceId={resourcePanelId}
+          onClose={handleCloseResource}
+          onSelectPath={handleSelectPath}
+        />
+      )}
+    </div>
+  )
+
+  // ── Embedded mode — no outer chrome ─────────────────────────────────────────
+  if (embedded) return innerContent
+
+  // ── Standalone mode — full page with header + sidebar ───────────────────────
   return (
     <div className="flex h-screen bg-slate-900 overflow-hidden">
       <div className="flex flex-col flex-1 overflow-hidden">
-
         {/* Qualys top header */}
         <header className="flex items-center justify-between px-4 py-2 bg-slate-800 border-b border-slate-700 shrink-0">
           <div className="flex items-center gap-3">
@@ -3013,6 +3069,9 @@ export default function AttackPathInsights() {
               {etmNavItems.map(item => (
                 <button
                   key={item.label}
+                  onClick={() => {
+                    if (item.label === 'Risk Management') window.location.hash = '/risk-management'
+                  }}
                   className={`w-full flex items-center gap-2.5 px-3 py-2 text-left text-[11px] transition-colors
                     ${item.active ? 'bg-indigo-600 text-white font-medium' : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'}`}
                 >
@@ -3026,55 +3085,11 @@ export default function AttackPathInsights() {
           {/* Main content */}
           <main className="flex-1 overflow-y-auto">
             <div className="p-5">
-
-              {/* Page heading */}
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <GitBranch className="w-5 h-5 text-indigo-400" />
-                    <h1 className="text-lg font-bold text-white">Attack Paths</h1>
-                  </div>
-                </div>
-              </div>
-
-              {/* Tabs */}
-              <div className="flex border-b border-slate-700 mb-5 gap-1">
-                {tabs.map(tab => (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px rounded-t-lg
-                      ${activeTab === tab.id
-                        ? 'border-indigo-600 text-indigo-400 bg-indigo-900/20'
-                        : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-700/40'}`}
-                  >
-                    <tab.icon className="w-4 h-4" />
-                    <span>{tab.label}</span>
-                  </button>
-                ))}
-              </div>
-
-              {/* Tab content */}
-              {activeTab === 'discover'   && <DiscoverTab onSelectPath={handleSelectPath} onOpenResource={handleOpenResource} />}
-              {activeTab === 'analyze'    && <AnalyzeTab  selectedPath={selectedPath} onSelectPath={(p) => { setSelectedPath(p); if (!p) setActiveTab('discover') }} onOpenResource={handleOpenResource} onNavigateToRemediate={() => setActiveTab('remediate')} />}
-              {activeTab === 'remediate'  && <RemediateTab selectedPath={selectedPath} onSelectPath={handleSelectPath} onOpenResource={handleOpenResource} onNavigateToAnalyze={() => setActiveTab('analyze')} />}
-              {activeTab === 'initial'    && <InitialConfigurationTab />}
-              {activeTab === 'configure'  && <ConfigurationTab />}
-              {activeTab === 'cr-initial' && <CurrentReleaseInitialConfigTab />}
-              {activeTab === 'cr-config'  && <CurrentReleaseConfigTab />}
+              {innerContent}
             </div>
           </main>
         </div>
       </div>
-
-      {/* Resource Detail Panel — rendered at root level so it overlays the full app */}
-      {resourcePanelId && (
-        <ResourceDetailPanel
-          resourceId={resourcePanelId}
-          onClose={handleCloseResource}
-          onSelectPath={handleSelectPath}
-        />
-      )}
     </div>
   )
 }

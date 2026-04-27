@@ -617,7 +617,7 @@ function RiskActionTab() {
 }
 
 // ─── Main Component ────────────────────────────────────────────────────────
-export default function AttackPathQualys() {
+export default function AttackPathQualys({ embedded = false }) {
   const [activeTab, setActiveTab] = useState('discovery')
 
   const etmNavItems = [
@@ -627,7 +627,6 @@ export default function AttackPathQualys() {
     { label: 'Dashboard', icon: LayoutDashboard },
     { label: 'Inventory', icon: Package },
     { label: 'Risk Management', icon: ShieldAlert },
-    { label: 'Attack Path', icon: GitBranch, active: true },
   ]
 
   const tabs = [
@@ -635,6 +634,31 @@ export default function AttackPathQualys() {
     { id: 'analysis', label: 'Analysis' },
     { id: 'risk', label: 'Risk & Action' },
   ]
+
+  if (embedded) {
+    return (
+      <div className="flex-1 overflow-y-auto bg-[hsl(220,20%,97%)] p-5">
+        <h1 className="text-lg font-bold text-slate-800 mb-3">Attack Path</h1>
+        <div className="flex border-b border-slate-200 mb-4">
+          {tabs.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors -mb-px
+                ${activeTab === tab.id
+                  ? 'border-indigo-600 text-indigo-600'
+                  : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+        {activeTab === 'discovery' && <DiscoveryTab />}
+        {activeTab === 'analysis'  && <AnalysisTab />}
+        {activeTab === 'risk'      && <RiskActionTab />}
+      </div>
+    )
+  }
 
   return (
     <div className="flex h-screen bg-[hsl(220,20%,97%)] overflow-hidden">
@@ -681,6 +705,10 @@ export default function AttackPathQualys() {
               {etmNavItems.map(item => (
                 <button
                   key={item.label}
+                  onClick={() => {
+                    if (item.label === 'Risk Management') window.location.hash = '/risk-management'
+                    if (item.label === 'Attack Path')     window.location.hash = '/insights'
+                  }}
                   className={`w-full flex items-center gap-2.5 px-3 py-2 text-left text-[11px] transition-colors
                     ${item.active
                       ? 'bg-indigo-600 text-white font-medium'
