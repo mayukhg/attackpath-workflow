@@ -1,76 +1,45 @@
 @echo off
-:: ─────────────────────────────────────────────────────────────────
-:: Attack Path Insights — Startup Script (Windows)
-:: Qualys Enterprise TruRisk™ Platform · ETM Attack Path Module
-:: ─────────────────────────────────────────────────────────────────
-title Attack Path Insights — Server
+title Attack Path Insights — Dev Server
+cd /d "%~dp0"
 
 echo.
-echo  ██████╗ ██╗   ██╗ █████╗ ██╗  ██╗   ██╗███████╗
-echo  ██╔═══██╗██║   ██║██╔══██╗██║  ╚██╗ ██╔╝██╔════╝
-echo  ██║   ██║██║   ██║███████║██║   ╚████╔╝ ███████╗
-echo  ██║▄▄ ██║██║   ██║██╔══██║██║    ╚██╔╝  ╚════██║
-echo  ╚██████╔╝╚██████╔╝██║  ██║███████╗██║   ███████║
-echo   ╚══▀▀═╝  ╚═════╝ ╚═╝  ╚═╝╚══════╝╚═╝   ╚══════╝
-echo.
-echo  Attack Path Insights — ETM Module
-echo  ─────────────────────────────────────────────────
+echo  Qualys Attack Path Prototype — starting Vite dev server
+echo  ───────────────────────────────────────────────────────
 echo.
 
-:: ── Check if port 3000 is already in use ─────────────────────────
-for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":3000 " ^| findstr "LISTENING" 2^>nul') do (
-    echo  [!] Port 3000 is already in use by PID %%a
-    echo      Run stop.bat first, or the server may already be running.
-    echo.
-    echo  Opening app in browser...
-    timeout /t 1 /nobreak >nul
-    start "" "http://localhost:3000/insights.html"
-    echo.
-    echo  URLs:
-    echo    Main screen  : http://localhost:3000/insights.html
-    echo    Workflow      : http://localhost:3000/workflow.html
-    echo    Original      : http://localhost:3000/index.html
-    goto :end
-)
-
-:: ── Check Node.js is available ───────────────────────────────────
 where node >nul 2>&1
 if %errorlevel% neq 0 (
-    echo  [ERROR] Node.js not found. Please install from https://nodejs.org
+    echo  [ERROR] Node.js not found. Install from https://nodejs.org
     pause
     exit /b 1
 )
 
-:: ── Start the server ─────────────────────────────────────────────
-echo  [*] Starting server on port 3000...
-start /B node "%~dp0server.cjs" > "%~dp0server.log" 2>&1
-
-:: ── Wait for server to be ready ──────────────────────────────────
-echo  [*] Waiting for server to initialise...
-timeout /t 2 /nobreak >nul
-
-:: ── Verify server started ────────────────────────────────────────
-for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":3000 " ^| findstr "LISTENING" 2^>nul') do (
-    echo  [✓] Server started successfully  ^(PID %%a^)
-    echo      PID saved to server.pid for shutdown
-    echo %%a > "%~dp0server.pid"
+if not exist "node_modules\" (
+    echo  [*] Installing dependencies...
+    call npm install
 )
 
-:: ── Open browser ─────────────────────────────────────────────────
-echo.
-echo  [*] Opening Attack Path Insights in browser...
-timeout /t 1 /nobreak >nul
-start "" "http://localhost:3000/insights.html"
+for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":5174 " ^| findstr "LISTENING" 2^>nul') do (
+    echo  [!] Port 5174 already in use — opening browser to existing server
+    start "" "http://localhost:5174/app.html#/home"
+    goto :end
+)
+
+echo  [*] Starting Vite on http://localhost:5174 ...
+start "Vite Dev" /min cmd /c "npm run dev"
+timeout /t 4 /nobreak >nul
+
+start "" "http://localhost:5174/app.html#/home"
 
 echo.
-echo  ─────────────────────────────────────────────────
-echo  URLs:
-echo    Attack Path Insights : http://localhost:3000/insights.html
-echo    User Journey Workflow : http://localhost:3000/workflow.html
-echo    Original Qualys Screen: http://localhost:3000/index.html
-echo  ─────────────────────────────────────────────────
-echo  To stop the server, run: stop.bat
-echo  Logs: server.log
+echo  Open these URLs in your browser:
+echo    Home            http://localhost:5174/app.html#/home
+echo    Risk Management http://localhost:5174/app.html#/findings
+echo    Attack Path tab http://localhost:5174/app.html#/attack-path
+echo                    (opens inside Risk Management)
+echo.
+echo  IMPORTANT: Use app.html — NOT insights.html on port 3000
+echo  Stop: close the Vite window or run stop.bat
 echo.
 
 :end

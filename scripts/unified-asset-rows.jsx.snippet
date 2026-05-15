@@ -1,0 +1,15 @@
+        <p className="text-[11px] text-slate-300 mb-4">
+          Qualys-enriched asset context with dynamic scores adjusted by topological position — elevated for chokepoints, suppressed for isolated assets.
+        </p>
+        <div className="space-y-3">
+          {mergedAssetRows.map((row, idx) => {
+            const a = row.resource
+            const scoring = row.scoring
+            const displayName = a?.name ?? scoring.asset
+            const rowKey = a?.id ?? `${scoring.asset}-${idx}`
+
+            return (
+              <motion.div
+                key={rowKey}
+                className="border border-slate-700 rounded-lg p-3"
+              >

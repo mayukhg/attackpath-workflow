@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   ShieldAlert, Search, Filter, ChevronDown, ChevronRight, ChevronLeft,
   RefreshCw, Plus, MoreVertical, AlertTriangle, Clock, Wrench,
@@ -147,25 +147,74 @@ function FilterSection({ title, items, active, onToggle }) {
   )
 }
 
+function tabFromHash(hash = window.location.hash) {
+  if (hash.startsWith('#/attack-path') || hash.startsWith('#/insights')) return 'attack-path'
+  if (hash.includes('workbench')) return 'risk-workbench'
+  return 'findings'
+}
+
+function hashForTab(tab) {
+  if (tab === 'attack-path') return '/attack-path'
+  if (tab === 'risk-workbench') return '/findings/workbench'
+  return '/findings'
+}
+
+function PageHeader({ topTab, onTabChange }) {
+  const PAGE_TABS = [
+    { id: 'findings', label: 'Findings' },
+    { id: 'risk-workbench', label: 'Risk Workbench' },
+    { id: 'attack-path', label: 'Attack Path' },
+  ]
+  return (
+    <div className="px-5 pt-4 pb-0 border-b border-slate-700/40 shrink-0">
+      <h1 className="text-lg font-semibold text-white">Risk Management</h1>
+      <p className="text-[12px] text-slate-400 mt-1 mb-3">
+        Prioritized findings, risk signals, and workbench views (prototype shell)
+      </p>
+      <div className="flex gap-1">
+        {PAGE_TABS.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => onTabChange(t.id)}
+            className={`px-4 py-2 text-[12px] font-medium border-b-2 -mb-px transition-colors ${
+              topTab === t.id
+                ? 'border-slate-300 text-white bg-slate-800/50'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function RiskManagementPage() {
-  const [topTab,    setTopTab]    = useState('findings')
+  const [topTab,    setTopTab]    = useState(() => tabFromHash())
   const [subTab,    setSubTab]    = useState('all')
+
+  const onTabChange = useCallback((tab) => {
+    setTopTab(tab)
+    const next = hashForTab(tab)
+    if (window.location.hash !== `#${next}`) {
+      window.location.hash = next
+    }
+  }, [])
+
+  useEffect(() => {
+    const onHash = () => setTopTab(tabFromHash())
+    window.addEventListener('hashchange', onHash)
+    return () => window.removeEventListener('hashchange', onHash)
+  }, [])
   const [search,    setSearch]    = useState('')
   const [activeFilters, setActiveFilters] = useState([])
   const [viewMode,  setViewMode]  = useState('finding') // 'asset' | 'finding'
 
   const toggleFilter = (label) =>
     setActiveFilters(prev => prev.includes(label) ? prev.filter(f => f !== label) : [...prev, label])
-
-  const TOP_TABS = [
-    { id: 'findings',       label: 'Findings' },
-    { id: 'risk-workbench', label: 'Risk Workbench' },
-    { id: 'risk-custom',    label: 'Risk Customization' },
-    { id: 'mitre',          label: 'MITRE ATT&CK Matrix' },
-    { id: 'finding-rules',  label: 'Finding Rules' },
-    { id: 'attack-path',    label: 'Attack Path' },
-  ]
 
   const SUB_TABS = [
     { id: 'overview',          label: 'Overview' },
@@ -184,57 +233,31 @@ export default function RiskManagementPage() {
     return true
   })
 
-  // ── Attack Path tab — render full existing module ──────────────────────────
   if (topTab === 'attack-path') {
     return (
-      <div className="flex flex-col h-full">
-        {/* Top nav stays visible */}
-        <div className="bg-[#0d1117] border-b border-slate-700/60 shrink-0">
-          <div className="flex items-center gap-0 px-4 overflow-x-auto">
-            {TOP_TABS.map(t => (
-              <button
-                key={t.id}
-                onClick={() => setTopTab(t.id)}
-                className={`px-4 py-2.5 text-[12px] font-medium whitespace-nowrap border-b-2 transition-colors -mb-px ${
-                  topTab === t.id
-                    ? 'border-blue-500 text-blue-400'
-                    : 'border-transparent text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="flex-1 overflow-hidden flex flex-col min-h-0">
+      <div className="flex flex-col h-full bg-[#0d1117] text-white overflow-hidden">
+        <PageHeader topTab={topTab} onTabChange={onTabChange} />
+        <div className="flex-1 overflow-hidden">
           <AttackPathInsights embedded />
         </div>
       </div>
     )
   }
 
-  // ── Findings / other tabs ─────────────────────────────────────────────────
-  return (
-    <div className="flex flex-col h-full bg-[#0d1117] text-white">
-
-      {/* ── Top navigation tabs ─────────────────────────────────────────── */}
-      <div className="bg-[#0d1117] border-b border-slate-700/60 shrink-0">
-        <div className="flex items-center gap-0 px-4 overflow-x-auto">
-          {TOP_TABS.map(t => (
-            <button
-              key={t.id}
-              onClick={() => setTopTab(t.id)}
-              className={`px-4 py-2.5 text-[12px] font-medium whitespace-nowrap border-b-2 transition-colors -mb-px ${
-                topTab === t.id
-                  ? 'border-blue-500 text-blue-400'
-                  : 'border-transparent text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
+  if (topTab === 'risk-workbench') {
+    return (
+      <div className="flex flex-col h-full bg-[#0d1117] text-white">
+        <PageHeader topTab={topTab} onTabChange={onTabChange} />
+        <div className="flex-1 flex items-center justify-center text-slate-500 text-sm p-8">
+          Risk Workbench view (prototype shell)
         </div>
       </div>
+    )
+  }
+
+  return (
+    <div className="flex flex-col h-full bg-[#0d1117] text-white">
+      <PageHeader topTab={topTab} onTabChange={onTabChange} />
 
       {/* ── Sub-tabs + total count ──────────────────────────────────────── */}
       <div className="flex items-center justify-between px-4 border-b border-slate-700/40 bg-[#0d1117] shrink-0">

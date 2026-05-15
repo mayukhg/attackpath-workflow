@@ -485,6 +485,7 @@ const SCORING_ITEMS = [
   { asset: 'Dev Test Server',        resourceId: null,                      reason: 'No Reachability: isolated VLAN, no external paths',                                 base: 6.2, adjusted: 2.7,  delta: '-57%', positive: false },
   { asset: 'Staging DB',             resourceId: null,                      reason: 'Dormant: no verified credential or service path',                                   base: 5.8, adjusted: 2.8,  delta: '-51%', positive: false },
   { asset: 'BeyondTrust Appliance',  resourceId: 'res-bt-appliance',        reason: 'Internet-Exposed PAM + Pre-auth RCE + Vault Access + Full Domain Path (+29%)',      base: 7.1, adjusted: 10.0, delta: '+29%', positive: true  },
+  { asset: 'vpn-gateway-01',           resourceId: 'res-vpn-gateway',         reason: 'Internet-facing VPN chokepoint + legacy auth protocols + shared across paths (+17%)', base: 6.1, adjusted: 7.4,  delta: '+17%', positive: true  },
   { asset: 'Windows Server (Legacy)',resourceId: 'res-win-server-unpatched', reason: 'MS17-010 Unpatched + Shared Local Admin + NTLMv1 + No Credential Guard (+27%)',    base: 6.8, adjusted: 9.5,  delta: '+27%', positive: true  },
   { asset: 'Shadow API',             resourceId: 'res-shadow-api',          reason: 'BOLA + Unmanaged Asset + No FIM + Container Escape Path (+28%)',                    base: 6.7, adjusted: 9.6,  delta: '+28%', positive: true  },
   { asset: 'Cloud Mgmt Console',     resourceId: 'res-cloud-mgmt-a',        reason: 'Hardcoded SA Key + SaaS MFA Bypass + Direct VPN Pivot to Corp Net (+26%)',         base: 7.0, adjusted: 9.5,  delta: '+26%', positive: true  },
@@ -492,6 +493,77 @@ const SCORING_ITEMS = [
   { asset: 'Apache Struts Server',   resourceId: 'res-struts-appserver',    reason: 'CVE-2023-50164 RCE + Shadow API Entry + Container Escape Chain + AD Path (+30%)',  base: 6.9, adjusted: 9.8,  delta: '+30%', positive: true  },
   { asset: 'runc Container Host',    resourceId: 'res-runc-container',      reason: 'CVE-2019-5736 Container Escape + Host Root + Credential Dump + Domain Path (+28%)', base: 7.0, adjusted: 9.7,  delta: '+28%', positive: true  },
 ]
+
+/** Derive contextual TruRisk-style adjustment when no explicit SCORING_ITEMS row exists. */
+function inferResourceScoring(resource) {
+  const baseBySeverity = { CRITICAL: 7.2, HIGH: 6.6, MEDIUM: 6.1, LOW: 5.4 }
+  const bumpByExploit = { Critical: 0.28, High: 0.18, Medium: 0.12, Low: -0.08 }
+  const base = baseBySeverity[resource.severity] ?? 6.0
+  const bump = bumpByExploit[resource.exploitability] ?? 0.1
+  const pathCount = getPathsByResourceId(resource.id).length
+  const topoBump = pathCount > 1 ? 0.05 : 0
+  const adjusted = Math.min(10, Math.round(base * (1 + bump + topoBump) * 10) / 10)
+  const deltaPct = Math.round(((adjusted - base) / base) * 100)
+  const positive = deltaPct >= 0
+  const topoNote = pathCount > 1 ? `, shared across ${pathCount} paths` : ''
+  return {
+    asset: resource.name,
+    resourceId: resource.id,
+    reason: `${resource.criticality} · ${resource.exploitability} exploitability${topoNote} (${positive ? '+' : ''}${deltaPct}% topological adjustment)`,
+    base,
+    adjusted,
+    delta: `${positive ? '+' : ''}${deltaPct}%`,
+    positive,
+  }
+}
+
+/** Path assets first (with matched or inferred scoring), then remaining contextual scoring rows. */
+function buildMergedAssetRows(pathResources, scoringItems) {
+  const pathIds = new Set(pathResources.map((r) => r.id))
+  const consumed = new Set()
+
+  const rows = pathResources.map((resource) => {
+    const scoring = scoringItems.find((s) => s.resourceId === resource.id) ?? inferResourceScoring(resource)
+    if (scoring) consumed.add(scoring.resourceId || scoring.asset)
+    return { resource, scoring }
+  })
+
+  scoringItems.forEach((scoring) => {
+    const key = scoring.resourceId || scoring.asset
+    if (scoring.resourceId && pathIds.has(scoring.resourceId)) return
+    if (consumed.has(key)) return
+    consumed.add(key)
+    const resource = scoring.resourceId ? RESOURCES.find((r) => r.id === scoring.resourceId) ?? null : null
+    rows.push({ resource, scoring })
+  })
+
+  return rows
+}
+
+function ContextualScoreStrip({ scoring, compact }) {
+  if (!scoring) {
+    return (
+      <span className={`text-slate-500 italic ${compact ? 'text-[10px]' : 'text-[11px]'}`}>
+        No contextual adjustment
+      </span>
+    )
+  }
+  return (
+    <div className={`flex items-center gap-3 shrink-0 ${compact ? '' : 'flex-wrap justify-end'}`}>
+      <div className="text-[10px] text-slate-400">Base → Adjusted</div>
+      <div className="flex items-center gap-1.5">
+        <span className="text-xs font-mono text-slate-400">{scoring.base.toFixed(1)}</span>
+        <ArrowRight className="w-3 h-3 text-slate-400" />
+        <span className={`text-xs font-mono font-bold ${scoring.positive ? 'text-red-600' : 'text-green-400'}`}>
+          {scoring.adjusted.toFixed(1)}
+        </span>
+      </div>
+      <span className={`text-xs font-bold px-2 py-0.5 rounded ${scoring.positive ? 'bg-red-900/30 text-red-600' : 'bg-green-900/30 text-green-400'}`}>
+        {scoring.delta}
+      </span>
+    </div>
+  )
+}
 
 const TOXIC_COMBOS = [
   {
@@ -595,12 +667,8 @@ const TOXIC_COMBOS = [
   },
 ]
 
-// ─── ROI Score Engine ─────────────────────────────────────────────────────────
-// Computes a 0–100 ROI score for each remediation action based on:
-//   Risk Reduction Value  = severity pts × path multiplier + toxic combo bonus + elevated score bonus
-//   Remediation Cost      = effort weight × ETA weight
-//   ROI Score             = clamp( round( RRV / Cost / MAX_RAW × 100 ), 0, 100 )
 
+// ─── ROI Score Engine ─────────────────────────────────────────────────────────
 const SEVERITY_PTS   = { CRITICAL: 40, HIGH: 30, MEDIUM: 20, LOW: 10 }
 const EFFORT_WEIGHT  = { Low: 1, Medium: 2, High: 3 }
 const ETA_WEIGHT = (eta = '') => {
@@ -608,11 +676,11 @@ const ETA_WEIGHT = (eta = '') => {
   if (s.includes('min') || (s.includes('hour') && parseInt(s) <= 4)) return 1
   if ((s.includes('hour') && parseInt(s) > 4) || (s.includes('day') && parseInt(s) <= 1)) return 2
   if (s.includes('day') && parseInt(s) <= 4) return 3
-  return 4   // 5+ days / 1 week+
+  return 4
 }
 const TOXIC_RES_IDS    = new Set(TOXIC_COMBOS.map(tc => tc.resourceId).filter(Boolean))
 const ELEVATED_RES_IDS = new Set(SCORING_ITEMS.filter(s => s.positive && s.resourceId).map(s => s.resourceId))
-const ROI_MAX_RAW = 110  // CRITICAL(40)×2paths + toxic(20) + elevated(10) = 110, cost=1
+const ROI_MAX_RAW = 110
 
 function computeRoi(action) {
   const severityPts    = SEVERITY_PTS[action.priority]  ?? 10
@@ -620,16 +688,12 @@ function computeRoi(action) {
   const pathMultiplier = Math.max(1, pathCount)
   const toxicBonus     = TOXIC_RES_IDS.has(action.resourceId)    ? 20 : 0
   const elevatedBonus  = ELEVATED_RES_IDS.has(action.resourceId) ? 10 : 0
-
   const rrv  = severityPts * pathMultiplier + toxicBonus + elevatedBonus
-
   const effortW = EFFORT_WEIGHT[action.effort] ?? 1
   const etaW    = ETA_WEIGHT(action.eta)
   const cost    = effortW * etaW
-
   const raw   = rrv / cost
   const score = Math.min(Math.round(raw / ROI_MAX_RAW * 100), 100)
-
   return {
     score,
     breakdown: {
@@ -761,7 +825,20 @@ function ResourceDetailPanel({ resourceId, onClose, onSelectPath }) {
 }
 
 // ─── Discover Tab ─────────────────────────────────────────────────────────────
+function inferPathDomain(ap) {
+  if (ap.domain) return ap.domain
+  const text = `${ap.entry} ${ap.title} ${ap.path}`.toLowerCase()
+  if (/saas|cloud|aws|s3|lambda|graphql|kubernetes|container|ec2|iam|serverless/.test(text)) return 'cloud'
+  if (/domain controller|ldap|active directory|kerber|ntlm|identity|entra|pam|vpn|ad takeover/.test(text)) {
+    return 'identity'
+  }
+  return 'on-prem'
+}
+
+const TABLE_GRID = 'grid-cols-[1fr_100px_80px_70px_120px_80px_90px]'
+
 function DiscoverTab({ onSelectPath, onOpenResource }) {
+  const [domainFilter, setDomainFilter]   = useState('all')
   const [severityFilter, setSeverityFilter] = useState('all')
   const [searchQuery, setSearchQuery]       = useState('')
   const [sharedPopup,   setSharedPopup]     = useState(null)  // { ap, resources[] }
@@ -778,7 +855,6 @@ function DiscoverTab({ onSelectPath, onOpenResource }) {
   const stats = [
     { label: 'Total Paths',          value: '11', icon: GitBranch,     color: 'text-white'       },
     { label: 'Critical Paths',       value: '9',  icon: AlertTriangle,  color: 'text-red-600'     },
-    { label: 'Avg QVSS Score',        value: '9.4', icon: TrendingUp,    color: 'text-orange-600'  },
     { label: 'Crown Jewels at Risk', value: '8',  icon: Target,         color: 'text-purple-600'  },
     { label: 'Entry Points',         value: '6',  icon: Zap,            color: 'text-blue-400'    },
   ]
@@ -792,18 +868,29 @@ function DiscoverTab({ onSelectPath, onOpenResource }) {
     { label: 'Lambda / Serverless',   count: 1 },
   ]
 
+  const domainCounts = { identity: 0, cloud: 0, 'on-prem': 0 }
+  ATTACK_PATHS.forEach((p) => {
+    const d = inferPathDomain(p)
+    domainCounts[d] = (domainCounts[d] || 0) + 1
+  })
+
   const filtered = ATTACK_PATHS.filter(p => {
+    const matchDomain = domainFilter === 'all' || inferPathDomain(p) === domainFilter
     const matchSev    = severityFilter === 'all' || p.severity === severityFilter
-    const matchSearch = !searchQuery ||
-      p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.target.toLowerCase().includes(searchQuery.toLowerCase())
-    return matchSev && matchSearch
+    const q = searchQuery.toLowerCase().trim()
+    const matchSearch = !q ||
+      p.title.toLowerCase().includes(q) ||
+      p.target.toLowerCase().includes(q) ||
+      p.path.toLowerCase().includes(q) ||
+      String(p.id).includes(q) ||
+      (p.mitre && p.mitre.toLowerCase().includes(q))
+    return matchDomain && matchSev && matchSearch
   })
 
   return (
     <div className="space-y-4">
       {/* Stats bar */}
-      <div className="grid grid-cols-5 gap-3">
+      <div className="grid grid-cols-4 gap-3">
         {stats.map(s => (
           <div key={s.label} className="bg-slate-800 rounded-lg border border-slate-700 p-3 flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-slate-700/40 border border-slate-700 flex items-center justify-center shrink-0">
@@ -826,11 +913,46 @@ function DiscoverTab({ onSelectPath, onOpenResource }) {
               <span className="text-xs font-semibold text-slate-200">Quick Filters</span>
             </div>
             <div className="mb-3">
+              <div className="text-[10px] text-slate-300 font-semibold uppercase tracking-wider mb-2">Domain</div>
+              <div className="space-y-1">
+                {[
+                  ['all', 'All', ATTACK_PATHS.length],
+                  ['identity', 'Identity', domainCounts.identity],
+                  ['cloud', 'Cloud', domainCounts.cloud],
+                  ['on-prem', 'On-Prem', domainCounts['on-prem']],
+                ].map(([val, label, count]) => (
+                  <button
+                    key={val}
+                    type="button"
+                    onClick={() => setDomainFilter(val)}
+                    className={`w-full flex items-center justify-between px-2 py-1 rounded text-[11px] transition-colors
+                      ${domainFilter === val ? 'bg-indigo-900/30 text-indigo-300 font-medium' : 'text-slate-300 hover:bg-slate-700/40'}`}
+                  >
+                    <span>{label}</span>
+                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-700 text-slate-300">{count}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="mb-3">
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 absolute left-2 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="search by asset name, CVE ID, asset type and QQL"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-7 pr-2 py-1.5 text-[10px] border border-slate-700 rounded text-slate-200 placeholder:text-slate-500 bg-slate-700/80 focus:outline-none focus:border-indigo-400"
+                />
+              </div>
+            </div>
+            <div className="mb-3">
               <div className="text-[10px] text-slate-300 font-semibold uppercase tracking-wider mb-2">Severity</div>
               <div className="space-y-1">
                 {[['all','All',11],['CRITICAL','Critical',9],['HIGH','High',2],['MEDIUM','Medium',0]].map(([val,label,count]) => (
                   <button
                     key={val}
+                    type="button"
                     onClick={() => setSeverityFilter(val)}
                     className={`w-full flex items-center justify-between px-2 py-1 rounded text-[11px] transition-colors
                       ${severityFilter === val ? 'bg-indigo-900/30 text-indigo-300 font-medium' : 'text-slate-300 hover:bg-slate-700/40'}`}
@@ -876,26 +998,31 @@ function DiscoverTab({ onSelectPath, onOpenResource }) {
               <span className="text-sm font-semibold text-white">Attack Paths</span>
               <span className="text-[11px] bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full font-medium">{filtered.length} of {ATTACK_PATHS.length}</span>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="relative">
-                <Search className="w-3.5 h-3.5 absolute left-2 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Search assets..."
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  className="pl-7 pr-3 py-1 text-[11px] border border-slate-700 rounded text-slate-200 placeholder:text-slate-400 bg-slate-700 focus:outline-none focus:border-indigo-400 w-52"
-                />
+            <div className="flex items-end gap-2 shrink-0">
+              <div className="flex flex-col items-end">
+                <div className="relative w-72">
+                  <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                  <input
+                    type="text"
+                    aria-label="Search attack paths"
+                    placeholder="Search..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-8 pr-3 py-1.5 text-[11px] border border-slate-600 rounded-md text-slate-100 placeholder:text-slate-500 bg-slate-900/60 focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-500/40"
+                  />
+                </div>
+                <p className="mt-1 text-[9px] text-slate-400 text-right leading-snug">
+                  search by asset name, CVE ID, asset type and QQL
+                </p>
               </div>
-              <button className="p-1.5 rounded border border-slate-700 text-slate-400 hover:bg-slate-700/40">
+              <button type="button" className="p-1.5 rounded border border-slate-700 text-slate-400 hover:bg-slate-700/40 mb-0.5" aria-label="Refresh">
                 <RefreshCw className="w-3.5 h-3.5" />
               </button>
             </div>
           </div>
 
           {/* Column headers — includes new Resources column */}
-          <div className="grid grid-cols-[64px_1fr_100px_80px_70px_120px_80px_90px] gap-2 px-3 py-2 bg-slate-700/60 border-b border-slate-600 text-[10px] font-bold text-slate-200 uppercase tracking-wider">
-            <div>CID</div>
+          <div className={`grid ${TABLE_GRID} gap-2 px-3 py-2 bg-slate-700/60 border-b border-slate-600 text-[10px] font-bold text-slate-200 uppercase tracking-wider`}>
             <div>Attack Path Title / Chain</div>
             <div>Crown Jewel</div>
             <div>Severity</div>
@@ -904,7 +1031,7 @@ function DiscoverTab({ onSelectPath, onOpenResource }) {
               <Link2 className="w-3 h-3" />
               Resources
             </div>
-            <div>QVSS Score</div>
+            <div>TruRisk Score</div>
             <div>Action</div>
           </div>
 
@@ -915,10 +1042,9 @@ function DiscoverTab({ onSelectPath, onOpenResource }) {
               return (
                 <div
                   key={ap.id}
-                  className="grid grid-cols-[64px_1fr_100px_80px_70px_120px_80px_90px] gap-2 px-3 py-3 items-center hover:bg-slate-700/40 transition-colors group cursor-pointer"
+                  className={`grid ${TABLE_GRID} gap-2 px-3 py-3 items-center hover:bg-slate-700/40 transition-colors group cursor-pointer`}
                   onClick={() => onSelectPath(ap)}
                 >
-                  <div className="text-[11px] font-mono text-slate-200 font-semibold">{ap.id}</div>
                   <div>
                     <div className="text-[12px] font-semibold text-white group-hover:text-indigo-300 leading-tight mb-0.5">{ap.title}</div>
                     <div className="text-[10px] font-mono text-slate-300 leading-tight truncate">{ap.path}</div>
@@ -1084,6 +1210,7 @@ function AnalyzeTab({ selectedPath, onSelectPath, onOpenResource, onNavigateToRe
 
   // IDs of resources shared with other paths (for the warning banner)
   const sharedIds = selectedPath ? getSharedResourceIds(selectedPath.id) : []
+  const mergedAssetRows = buildMergedAssetRows(pathResources, SCORING_ITEMS)
 
   if (!selectedPath) {
     return (
@@ -1242,10 +1369,7 @@ function AnalyzeTab({ selectedPath, onSelectPath, onOpenResource, onNavigateToRe
 
       {/* Attack Path Flow Visualization — edges are clickable to inspect security gaps */}
       <div className="bg-slate-800 rounded-lg border border-slate-700 p-4">
-        <div className="flex items-center justify-between mb-1">
-          <h3 className="font-semibold text-white text-sm">Attack Path Visualization</h3>
-          <span className="text-xs text-green-400 font-medium bg-green-900/20 border border-green-700/50 px-2 py-0.5 rounded">Validated</span>
-        </div>
+        <h3 className="font-semibold text-white text-sm mb-1">Attack Path Visualization</h3>
         <p className="text-[11px] text-slate-300 mb-1">
           Entry: <span className="font-semibold text-white">{selectedPath.entry}</span> &nbsp;→&nbsp; Crown Jewel: <span className="font-semibold text-red-300">{selectedPath.target}</span>
         </p>
@@ -1357,115 +1481,73 @@ function AnalyzeTab({ selectedPath, onSelectPath, onOpenResource, onNavigateToRe
         )}
       </div>
 
-      {/* ── 5. Asset Metadata (diagram order: after flow graph) ── */}
+      {/* ── 5. Asset metadata & risk scoring (unified per asset) ── */}
       <div className="bg-slate-800 rounded-lg border border-slate-700 p-4">
-        <div className="flex items-center justify-between mb-1">
-          <h3 className="font-semibold text-white text-sm">Asset Metadata</h3>
-          <span className="text-[10px] text-teal-400 bg-teal-900/20 border border-teal-700/50 px-2 py-0.5 rounded font-medium flex items-center gap-1">
-            <Link2 className="w-3 h-3" />
-            {sharedIds.length > 0 ? `${sharedIds.length} shared across paths` : 'All resources unique to this path'}
-          </span>
+        <div className="flex items-center gap-2 mb-1">
+          <TrendingUp className="w-4 h-4 text-indigo-400" />
+          <h3 className="font-semibold text-white text-sm">Asset Metadata &amp; Risk Scoring</h3>
         </div>
-        <p className="text-[11px] text-slate-300 mb-3">Qualys-enriched asset context — OS, services, criticality, exploitability, and cross-path membership</p>
-        <div className="grid grid-cols-2 gap-3">
-          {pathResources.map(a => {
-            const otherPaths = getPathsByResourceId(a.id).filter(p => p.id !== selectedPath.id)
+        <p className="text-[11px] text-slate-300 mb-4">
+          Qualys-enriched asset context with dynamic scores adjusted by topological position — elevated for chokepoints, suppressed for isolated assets.
+        </p>
+        <div className="space-y-3">
+          {mergedAssetRows.map((row, idx) => {
+            const a = row.resource
+            const scoring = row.scoring
+            const displayName = a?.name ?? scoring.asset
+            const rowKey = a?.id ?? `${scoring.asset}-${idx}`
+
             return (
               <div
-                key={a.id}
-                className={`border rounded-lg p-3 ${otherPaths.length > 0 ? 'border-teal-700/50 bg-teal-900/20' : 'border-slate-700'}`}
+                key={rowKey}
+                className="border border-slate-700 rounded-lg p-3"
               >
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-semibold text-white font-mono">{a.name}</span>
-                    {otherPaths.length > 0 && (
-                      <button
-                        onClick={() => onOpenResource(a.id)}
-                        className="text-[9px] bg-teal-900/30 text-teal-300 border border-teal-700/50 px-1.5 py-0.5 rounded-full hover:bg-teal-800/40 transition-colors flex items-center gap-0.5"
-                      >
-                        <Link2 className="w-2.5 h-2.5" />
-                        ×{otherPaths.length + 1} paths
-                      </button>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                      <span className="text-xs font-semibold text-white font-mono">{displayName}</span>
+                      {!a && scoring && (
+                        <span className="text-[9px] text-slate-400 bg-slate-700/60 border border-slate-600 px-1.5 py-0.5 rounded">
+                          Contextual asset
+                        </span>
+                      )}
+                    </div>
+                    {a && (
+                      <div className="flex gap-1.5 flex-wrap">
+                        <SeverityBadge level={a.severity} />
+                        <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded border
+                          ${a.exploitability === 'Critical' || a.exploitability === 'High' ? 'bg-red-900/20 text-red-600 border-red-700/50' :
+                            a.exploitability === 'Medium' ? 'bg-yellow-900/20 text-yellow-600 border-yellow-700/50' :
+                            'bg-slate-700/40 text-slate-400 border-slate-700'}`}>
+                          Exploitability: {a.exploitability}
+                        </span>
+                      </div>
                     )}
                   </div>
-                  <div className="flex gap-1.5">
-                    <SeverityBadge level={a.severity} />
-                    <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded border
-                      ${a.exploitability === 'Critical' || a.exploitability === 'High' ? 'bg-red-900/20 text-red-600 border-red-700/50' :
-                        a.exploitability === 'Medium' ? 'bg-yellow-900/20 text-yellow-600 border-yellow-700/50' :
-                        'bg-slate-700/40 text-slate-400 border-slate-700'}`}>
-                      Exploitability: {a.exploitability}
-                    </span>
-                  </div>
+                  <ContextualScoreStrip scoring={scoring} />
                 </div>
-                <div className="text-[10px] text-slate-400 mb-1">{a.os}</div>
-                <div className="grid grid-cols-3 gap-2 text-[10px]">
-                  <div><div className="text-slate-400 font-medium">Criticality</div><div className="text-slate-200">{a.criticality}</div></div>
-                  <div><div className="text-slate-400 font-medium">Open Ports</div><div className="text-slate-200 font-mono">{a.ports}</div></div>
-                  <div><div className="text-slate-400 font-medium">Services</div><div className="text-slate-200">{a.services}</div></div>
-                </div>
-                {otherPaths.length > 0 ? (
-                  <div className="mt-2 pt-2 border-t border-teal-700/50 flex items-center gap-1.5 flex-wrap">
-                    <Link2 className="w-3 h-3 text-teal-300 shrink-0" />
-                    <span className="text-[10px] text-teal-300">Also in {otherPaths.length} other path{otherPaths.length > 1 ? 's' : ''}:</span>
-                    {otherPaths.map(p => (
-                      <button key={p.id} onClick={() => onSelectPath(p)}
-                        className="text-[9px] bg-indigo-900/30 text-indigo-300 border border-indigo-700 px-1.5 py-0.5 rounded hover:bg-indigo-800/40 transition-colors font-mono">
-                        AP-{p.id}
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="mt-2 pt-2 border-t border-slate-600/50 flex items-center gap-1">
-                    <CheckCircle className="w-3 h-3 text-green-500 shrink-0" />
-                    <span className="text-[10px] text-green-400">Unique to this path</span>
+
+                {a && (
+                  <>
+                    <div className="text-[10px] text-slate-400 mb-1">{a.os}</div>
+                    <div className="grid grid-cols-3 gap-2 text-[10px] mb-2">
+                      <div><div className="text-slate-400 font-medium">Criticality</div><div className="text-slate-200">{a.criticality}</div></div>
+                      <div><div className="text-slate-400 font-medium">Open Ports</div><div className="text-slate-200 font-mono">{a.ports}</div></div>
+                      <div><div className="text-slate-400 font-medium">Services</div><div className="text-slate-200">{a.services}</div></div>
+                    </div>
+                  </>
+                )}
+
+                {scoring?.reason && (
+                  <div className={`text-[10px] text-slate-400 ${a ? 'pt-2 border-t border-slate-700/60' : ''}`}>
+                    {scoring.reason}
                   </div>
                 )}
               </div>
             )
           })}
         </div>
-      </div>
 
-      {/* ── 6. Asset Risk Scoring ── */}
-      <div className="bg-slate-800 rounded-lg border border-slate-700 p-4">
-        <div className="flex items-center gap-2 mb-3">
-          <TrendingUp className="w-4 h-4 text-indigo-400" />
-          <h3 className="font-semibold text-white text-sm">Asset Risk Scoring</h3>
-        </div>
-        <p className="text-[11px] text-slate-400 mb-3">
-          Dynamic scores adjusted by topological position — elevated for chokepoints, suppressed for isolated assets.
-        </p>
-        <div className="space-y-2">
-          {SCORING_ITEMS.map(item => {
-            const pathCount = item.resourceId ? getPathsByResourceId(item.resourceId).length : 0
-            return (
-              <div key={item.asset} className="border border-slate-700 rounded-lg p-3 flex items-center gap-4">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <span className="text-xs font-semibold text-white">{item.asset}</span>
-                    {pathCount > 1 && (
-                      <button onClick={() => onOpenResource(item.resourceId)}
-                        className="text-[9px] bg-teal-900/20 text-teal-300 border border-teal-700/50 px-1.5 py-0.5 rounded-full hover:bg-teal-900/30 transition-colors flex items-center gap-0.5">
-                        <Link2 className="w-2.5 h-2.5" /> In {pathCount} paths
-                      </button>
-                    )}
-                  </div>
-                  <div className="text-[10px] text-slate-400">{item.reason}</div>
-                </div>
-                <div className="flex items-center gap-3 shrink-0">
-                  <div className="text-[10px] text-slate-400">Base → Adjusted</div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-mono text-slate-400">{item.base.toFixed(1)}</span>
-                    <ArrowRight className="w-3 h-3 text-slate-400" />
-                    <span className={`text-xs font-mono font-bold ${item.positive ? 'text-red-600' : 'text-green-400'}`}>{item.adjusted.toFixed(1)}</span>
-                  </div>
-                  <span className={`text-xs font-bold px-2 py-0.5 rounded ${item.positive ? 'bg-red-900/30 text-red-600' : 'bg-green-900/30 text-green-400'}`}>{item.delta}</span>
-                </div>
-              </div>
-            )
-          })}
-        </div>
       </div>
 
       {/* ── 7. Toxic Combinations ── */}
@@ -1586,8 +1668,8 @@ const getAlternates = (action) => {
 // ─── Remediate Tab ────────────────────────────────────────────────────────────
 function RemediateTab({ selectedPath, onSelectPath, onOpenResource, onNavigateToAnalyze }) {
   const [actionStates,    setActionStates]    = useState({})
-  const [roiTooltip,      setRoiTooltip]      = useState(null)  // key whose ROI panel is open
   const [detailOpen,      setDetailOpen]      = useState(null)  // key whose detail/alts panel is open
+  const [roiTooltip,      setRoiTooltip]      = useState(null)
   const [remediatedBanner, setRemediatedBanner] = useState(false)
 
   const toggleAction = (key, newState) => {
@@ -1607,17 +1689,6 @@ function RemediateTab({ selectedPath, onSelectPath, onOpenResource, onNavigateTo
     setDetailOpen(opening ? key : null)
     if (opening) setActionStates(prev => ({ ...prev, [key]: 'detail' }))
   }
-
-  const actionCount = selectedPath ? selectedPath.remediation.length : 12
-  const avgRoi = selectedPath
-    ? Math.round(selectedPath.remediation.reduce((s, a) => s + computeRoi(a).score, 0) / selectedPath.remediation.length)
-    : 64
-
-  const summaryStats = [
-    { label: 'Toxic Combos',     value: String(TOXIC_COMBOS.length),                            color: 'text-red-600'    },
-    { label: 'Score Elevated',   value: String(SCORING_ITEMS.filter(s => s.positive).length),   color: 'text-orange-500' },
-    { label: 'ROI Score',        value: String(avgRoi),                                          color: 'text-green-500'  },
-  ]
 
   const allActions = selectedPath
     ? selectedPath.remediation
@@ -1643,16 +1714,6 @@ function RemediateTab({ selectedPath, onSelectPath, onOpenResource, onNavigateTo
           ← Back to Analyze
         </button>
       )}
-
-      {/* Stats — 3 cards matching diagram */}
-      <div className="grid grid-cols-3 gap-3">
-        {summaryStats.map(s => (
-          <div key={s.label} className="bg-slate-800 rounded-lg border border-slate-700 p-3 text-center">
-            <div className={`text-2xl font-bold ${s.color}`}>{s.value}</div>
-            <div className="text-[11px] text-slate-400 mt-0.5 leading-tight">{s.label}</div>
-          </div>
-        ))}
-      </div>
 
       {/* Recommended Remediation Actions */}
       <div className="bg-slate-800 rounded-lg border border-slate-700 p-4">
@@ -1700,12 +1761,12 @@ function RemediateTab({ selectedPath, onSelectPath, onOpenResource, onNavigateTo
               : []
             const crossPathCount = affectedPaths.length
 
+            const isDetailOpen = detailOpen === key
+            const alternates   = getAlternates(action)
             const { score: roiScore, breakdown: roiB } = computeRoi(action)
             const isRoiOpen    = roiTooltip === key
-            const isDetailOpen = detailOpen === key
             const scoreColor   = roiScore >= 70 ? 'text-green-400' : roiScore >= 40 ? 'text-orange-500' : 'text-slate-400'
             const borderColor  = roiScore >= 70 ? 'border-green-600/50' : roiScore >= 40 ? 'border-orange-600/50' : 'border-slate-700'
-            const alternates   = getAlternates(action)
 
             return (
               <div key={key} className={`border ${c.border} ${c.bg} rounded-lg overflow-hidden transition-opacity ${state === 'complete' ? 'opacity-50' : ''}`}>
@@ -1734,8 +1795,6 @@ function RemediateTab({ selectedPath, onSelectPath, onOpenResource, onNavigateTo
                       )}
                       {state === 'detail'     && <span className="text-sky-400 font-medium flex items-center gap-1"><Eye className="w-3 h-3" />Viewed Detail</span>}
                       {state === 'suppressed' && <span className="text-slate-400 font-medium flex items-center gap-1"><EyeOff className="w-3 h-3" />Suppressed</span>}
-                      {state === 'ticket'     && <span className="text-blue-400 font-medium flex items-center gap-1"><Ticket className="w-3 h-3" />Ticket Created</span>}
-                      {state === 'complete'   && <span className="text-emerald-400 font-medium flex items-center gap-1"><CheckCircle className="w-3 h-3" />Completed</span>}
                     </div>
                   </div>
                   {/* ROI badge — click to expand/collapse breakdown */}
@@ -1755,25 +1814,11 @@ function RemediateTab({ selectedPath, onSelectPath, onOpenResource, onNavigateTo
                     <Eye className="w-3 h-3" /> More Detail
                   </button>
                   <button
-                    onClick={() => toggleAction(key, 'ticket')}
-                    className={`flex items-center gap-1 text-[10px] px-2 py-1 rounded border transition-colors
-                      ${state === 'ticket' ? 'bg-blue-600 text-white border-blue-600' : 'border-blue-500 text-blue-300 hover:bg-blue-900/20'}`}
-                  >
-                    <Ticket className="w-3 h-3" /> Create Ticket
-                  </button>
-                  <button
                     onClick={() => toggleAction(key, 'suppressed')}
                     className={`flex items-center gap-1 text-[10px] px-2 py-1 rounded border transition-colors
                       ${state === 'suppressed' ? 'bg-slate-400 text-white border-slate-400' : 'border-slate-600 text-slate-400 hover:bg-slate-700/40'}`}
                   >
                     <EyeOff className="w-3 h-3" /> Suppress
-                  </button>
-                  <button
-                    onClick={() => markComplete(key)}
-                    className={`flex items-center gap-1 text-[10px] px-2 py-1 rounded border transition-colors
-                      ${state === 'complete' ? 'bg-emerald-600 text-white border-emerald-600' : 'border-emerald-600 text-emerald-400 hover:bg-emerald-900/20'}`}
-                  >
-                    <CheckCircle className="w-3 h-3" /> Mark Complete
                   </button>
                 </div>
                 </div>{/* end main action row */}
@@ -2999,10 +3044,10 @@ export default function AttackPathInsights({ embedded = false }) {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px rounded-t-lg
+            className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px
               ${activeTab === tab.id
-                ? 'border-indigo-600 text-indigo-400 bg-indigo-900/20'
-                : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-700/40'}`}
+                ? 'border-white text-white'
+                : 'border-transparent text-slate-500 hover:text-slate-300'}`}
           >
             <tab.icon className="w-4 h-4" />
             <span>{tab.label}</span>
