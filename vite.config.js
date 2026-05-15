@@ -5,12 +5,12 @@ import { resolve } from 'path'
 export default defineConfig({
   plugins: [react()],
   server: {
-    port: 5173,
+    port: 5174,
     strictPort: true,
   },
   build: {
     rollupOptions: {
-      input: resolve(__dirname, 'index.html'),
+      input: resolve(__dirname, 'app.html'),
     },
   },
 })
