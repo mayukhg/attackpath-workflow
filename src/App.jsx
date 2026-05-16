@@ -3,12 +3,12 @@ import QualysShell from './components/QualysShell'
 import SharedSidebar from './components/SharedSidebar'
 import HomePage from './components/HomePage'
 import RiskManagementPage from './components/RiskManagementPage'
-import AttackPathOnboarding from './components/AttackPathOnboarding'
+import ConfigurationPage from './components/ConfigurationPage'
 
 function parseRoute(hash) {
   const h = hash || '#/home'
   if (h === '#/' || h === '' || h === '#/home') return 'home'
-  if (h.startsWith('#/onboarding')) return 'onboarding'
+  if (h.startsWith('#/configuration')) return 'configuration'
   if (
     h.startsWith('#/findings') ||
     h.startsWith('#/risk-management') ||
@@ -53,10 +53,10 @@ export default function App() {
     )
   }
 
-  if (route === 'onboarding') {
+  if (route === 'configuration') {
     return (
-      <EtmLayout activeItem="Attack Path Onboarding">
-        <AttackPathOnboarding />
+      <EtmLayout activeItem="Configuration">
+        <ConfigurationPage />
       </EtmLayout>
     )
   }

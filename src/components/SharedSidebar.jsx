@@ -1,4 +1,4 @@
-import { Home, LayoutDashboard, ShieldAlert, Package, Bot, Plus, Target } from 'lucide-react'
+import { Home, LayoutDashboard, ShieldAlert, Package, Bot, Plus, Target, SlidersHorizontal } from 'lucide-react'
 
 const NAV_ITEMS = [
   { label: 'Add-ons',              icon: Plus,            hash: null },
@@ -7,7 +7,7 @@ const NAV_ITEMS = [
   { label: 'Dashboard',            icon: LayoutDashboard, hash: null },
   { label: 'Inventory',            icon: Package,         hash: null },
   { label: 'Risk Management',      icon: ShieldAlert,     hash: '/findings' },
-  { label: 'Attack Path Onboarding', icon: Target,        hash: '/onboarding' },
+  { label: 'Configuration',        icon: SlidersHorizontal, hash: '/configuration' },
 ]
 
 export default function SharedSidebar({ activeItem, expanded = false }) {
