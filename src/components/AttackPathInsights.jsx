@@ -828,6 +828,7 @@ function ResourceDetailPanel({ resourceId, onClose, onSelectPath }) {
 function inferPathDomain(ap) {
   if (ap.domain) return ap.domain
   const text = `${ap.entry} ${ap.title} ${ap.path}`.toLowerCase()
+  if (text.includes('hybrid')) return 'hybrid'
   if (/saas|cloud|aws|s3|lambda|graphql|kubernetes|container|ec2|iam|serverless/.test(text)) return 'cloud'
   if (/domain controller|ldap|active directory|kerber|ntlm|identity|entra|pam|vpn|ad takeover/.test(text)) {
     return 'identity'
@@ -868,7 +869,7 @@ function DiscoverTab({ onSelectPath, onOpenResource }) {
     { label: 'Lambda / Serverless',   count: 1 },
   ]
 
-  const domainCounts = { identity: 0, cloud: 0, 'on-prem': 0 }
+  const domainCounts = { identity: 0, cloud: 0, hybrid: 0, 'on-prem': 0 }
   ATTACK_PATHS.forEach((p) => {
     const d = inferPathDomain(p)
     domainCounts[d] = (domainCounts[d] || 0) + 1
@@ -919,6 +920,7 @@ function DiscoverTab({ onSelectPath, onOpenResource }) {
                   ['all', 'All', ATTACK_PATHS.length],
                   ['identity', 'Identity', domainCounts.identity],
                   ['cloud', 'Cloud', domainCounts.cloud],
+                  ['hybrid', 'Hybrid', domainCounts.hybrid],
                   ['on-prem', 'On-Prem', domainCounts['on-prem']],
                 ].map(([val, label, count]) => (
                   <button
@@ -1051,7 +1053,7 @@ function DiscoverTab({ onSelectPath, onOpenResource }) {
                   </div>
                   <div className="text-[10px] text-slate-100 leading-tight font-medium">{ap.target}</div>
                   <div><SeverityBadge level={ap.severity} /></div>
-                  <div className="text-[11px] text-slate-300">{ap.hops} hops / {ap.gaps} gaps</div>
+                  <div className="text-[11px] text-slate-300">{ap.flowNodes.length} hops / {Math.max(0, ap.flowNodes.length - 1)} gaps</div>
 
                   {/* Resources cell — shows count + shared badge */}
                   <div className="flex flex-col gap-1 items-start" onClick={e => e.stopPropagation()}>
