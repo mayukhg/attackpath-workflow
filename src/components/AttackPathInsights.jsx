@@ -549,21 +549,65 @@ function ContextualScoreStrip({ scoring, compact }) {
     )
   }
 
-  const truriskScore = Math.round(scoring.adjusted * 100);
+  const qdsScore = Math.round(scoring.adjusted * 10);
   const isCritical = scoring.adjusted >= 9.0;
   const isHigh = scoring.adjusted >= 7.5;
 
   return (
-    <div className="flex flex-col items-center gap-1.5 shrink-0">
-      <div className="text-[9px] font-bold text-slate-300 uppercase tracking-widest text-center leading-tight">
-        TRURISK™<br />SCORE
+    <div className="flex flex-col items-center gap-2 shrink-0 relative group">
+      <div className="flex items-center gap-1.5 text-sm font-medium text-slate-300 cursor-help">
+        QDS
+        <Info className="w-3.5 h-3.5 text-blue-400" />
       </div>
-      <div className={`inline-flex items-center justify-center px-3.5 py-1 rounded-full text-xs font-bold ${
-        isCritical ? 'bg-red-950 text-red-400' : 
-        isHigh ? 'bg-[#451010] text-[#ff7b72]' : 
-        'bg-yellow-950 text-yellow-400'
+      <div className={`flex items-center justify-center px-4 py-1.5 rounded-md text-sm font-bold border ${
+        isCritical ? 'border-red-500/70 text-red-400 bg-red-950/20' : 
+        isHigh ? 'border-orange-500/70 text-orange-300 bg-orange-950/20' : 
+        'border-yellow-500/70 text-yellow-400 bg-yellow-950/20'
       }`}>
-        {truriskScore}
+        {qdsScore}
+      </div>
+
+      {/* QDS Tooltip */}
+      <div className="absolute top-8 right-0 w-[400px] bg-[#1e1e1e] border border-slate-700 rounded-lg p-5 shadow-2xl z-50 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity text-left">
+        <div className="flex justify-between items-start mb-3">
+          <h3 className="text-sm font-bold text-slate-200">What is Qualys Detection Score (QDS)?</h3>
+          <X className="w-5 h-5 text-blue-400 cursor-pointer" />
+        </div>
+        <p className="text-[12px] text-slate-300 leading-relaxed mb-1">
+          This is the score assigned to the respective Qualys detection. QDS range is 1-100 and has four severity levels: Critical, High, Medium, and Low. QDS is derived from the following factors:
+        </p>
+        <ul className="text-[12px] text-slate-300 mb-4 pl-1">
+          <li>a. Vulnerability technical details</li>
+          <li>b. Vulnerability temporal details</li>
+        </ul>
+        
+        <div className="text-[12px] text-slate-300 mb-2 font-medium">The QDS range is 1-100</div>
+        
+        <div className="flex h-2.5 w-full rounded-sm overflow-hidden mb-2">
+          <div className="w-1/4 bg-amber-500"></div>
+          <div className="w-1/4 bg-orange-600 border-l border-[#1e1e1e]"></div>
+          <div className="w-1/4 bg-red-600 border-l border-[#1e1e1e]"></div>
+          <div className="w-1/4 bg-red-800 border-l border-[#1e1e1e]"></div>
+        </div>
+        
+        <div className="flex text-center text-[11px] text-slate-400">
+          <div className="w-1/4 flex flex-col gap-0.5">
+            <span>1-39</span>
+            <span>Low</span>
+          </div>
+          <div className="w-1/4 flex flex-col gap-0.5">
+            <span>40-69</span>
+            <span>Medium</span>
+          </div>
+          <div className="w-1/4 flex flex-col gap-0.5">
+            <span>70-89</span>
+            <span>High</span>
+          </div>
+          <div className="w-1/4 flex flex-col gap-0.5">
+            <span>90-100</span>
+            <span>Critical</span>
+          </div>
+        </div>
       </div>
     </div>
   )
