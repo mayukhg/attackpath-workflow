@@ -1314,12 +1314,6 @@ function AnalyzeTab({ selectedPath, onSelectPath, onOpenResource, onNavigateToRe
           >
             ← Back to all paths
           </button>
-          <div className="flex gap-2">
-            <StatusPill status={selectedPath.status} />
-            <span className={`text-sm font-bold px-2 py-0.5 rounded ${selectedPath.score >= 9.0 ? 'bg-red-900/30 text-red-300' : 'bg-orange-900/30 text-orange-300'}`}>
-              QVSS {selectedPath.score}
-            </span>
-          </div>
         </div>
         <div className="flex items-start gap-3">
           <div>
