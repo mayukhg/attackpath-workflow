@@ -6,7 +6,7 @@ import {
   Wrench, CheckCircle, XCircle, AlertCircle, ShieldAlert,
   TrendingUp, RefreshCw, Ticket, EyeOff, User, Server, Cloud,
   Link2, X, Globe, Activity, Cpu, Key, Sliders, Wifi, Layers,
-  Tag, Settings2
+  Tag, Settings2, Info
 } from 'lucide-react'
 
 // ─── Severity Badge ──────────────────────────────────────────────────────────
@@ -548,19 +548,23 @@ function ContextualScoreStrip({ scoring, compact }) {
       </span>
     )
   }
+
+  const truriskScore = Math.round(scoring.adjusted * 100);
+  const isCritical = scoring.adjusted >= 9.0;
+  const isHigh = scoring.adjusted >= 7.5;
+
   return (
-    <div className={`flex items-center gap-3 shrink-0 ${compact ? '' : 'flex-wrap justify-end'}`}>
-      <div className="text-[10px] text-slate-400">Base → Adjusted</div>
-      <div className="flex items-center gap-1.5">
-        <span className="text-xs font-mono text-slate-400">{scoring.base.toFixed(1)}</span>
-        <ArrowRight className="w-3 h-3 text-slate-400" />
-        <span className={`text-xs font-mono font-bold ${scoring.positive ? 'text-red-600' : 'text-green-400'}`}>
-          {scoring.adjusted.toFixed(1)}
-        </span>
+    <div className="flex flex-col items-center gap-1.5 shrink-0">
+      <div className="text-[9px] font-bold text-slate-300 uppercase tracking-widest text-center leading-tight">
+        TRURISK™<br />SCORE
       </div>
-      <span className={`text-xs font-bold px-2 py-0.5 rounded ${scoring.positive ? 'bg-red-900/30 text-red-600' : 'bg-green-900/30 text-green-400'}`}>
-        {scoring.delta}
-      </span>
+      <div className={`inline-flex items-center justify-center px-3.5 py-1 rounded-full text-xs font-bold ${
+        isCritical ? 'bg-red-950 text-red-400' : 
+        isHigh ? 'bg-[#451010] text-[#ff7b72]' : 
+        'bg-yellow-950 text-yellow-400'
+      }`}>
+        {truriskScore}
+      </div>
     </div>
   )
 }
@@ -836,7 +840,7 @@ function inferPathDomain(ap) {
   return 'on-prem'
 }
 
-const TABLE_GRID = 'grid-cols-[1fr_100px_80px_70px_120px_80px_90px]'
+const TABLE_GRID = 'grid-cols-[1fr_100px_80px_70px_120px_80px]'
 
 function DiscoverTab({ onSelectPath, onOpenResource }) {
   const [domainFilter, setDomainFilter]   = useState('all')
@@ -1000,25 +1004,25 @@ function DiscoverTab({ onSelectPath, onOpenResource }) {
               <span className="text-sm font-semibold text-white">Attack Paths</span>
               <span className="text-[11px] bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full font-medium">{filtered.length} of {ATTACK_PATHS.length}</span>
             </div>
-            <div className="flex items-end gap-2 shrink-0">
+            <div className="flex items-end gap-3 shrink-0">
               <div className="flex flex-col items-end">
-                <div className="relative w-72">
-                  <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                <div className="relative w-96">
+                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                   <input
                     type="text"
                     aria-label="Search attack paths"
                     placeholder="Search..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-8 pr-3 py-1.5 text-[11px] border border-slate-600 rounded-md text-slate-100 placeholder:text-slate-500 bg-slate-900/60 focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-500/40"
+                    className="w-full pl-9 pr-4 py-2 text-sm border border-slate-600 rounded-md text-slate-100 placeholder:text-slate-400 bg-slate-900/60 focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-500/40"
                   />
                 </div>
-                <p className="mt-1 text-[9px] text-slate-400 text-right leading-snug">
+                <p className="mt-1.5 text-xs text-slate-300 font-medium text-right leading-snug">
                   search by asset name, CVE ID, asset type and QQL
                 </p>
               </div>
-              <button type="button" className="p-1.5 rounded border border-slate-700 text-slate-400 hover:bg-slate-700/40 mb-0.5" aria-label="Refresh">
-                <RefreshCw className="w-3.5 h-3.5" />
+              <button type="button" className="p-2 rounded border border-slate-700 text-slate-400 hover:bg-slate-700/40 mb-1" aria-label="Refresh">
+                <RefreshCw className="w-4 h-4" />
               </button>
             </div>
           </div>
@@ -1033,8 +1037,10 @@ function DiscoverTab({ onSelectPath, onOpenResource }) {
               <Link2 className="w-3 h-3" />
               Resources
             </div>
-            <div>TruRisk Score</div>
-            <div>Action</div>
+            <div className="flex items-center gap-1">
+              TruRisk™ Score
+              <Info className="w-3.5 h-3.5 text-blue-400" />
+            </div>
           </div>
 
           {/* Rows */}
@@ -1077,15 +1083,10 @@ function DiscoverTab({ onSelectPath, onOpenResource }) {
                     )}
                   </div>
 
-                  <div className={`text-sm font-bold ${ap.score >= 9.0 ? 'text-red-600' : ap.score >= 7.5 ? 'text-orange-600' : 'text-yellow-600'}`}>{ap.score}</div>
                   <div>
-                    <button
-                      onClick={e => { e.stopPropagation(); onSelectPath(ap) }}
-                      className="flex items-center gap-1 text-[10px] bg-indigo-600 text-white px-2.5 py-1 rounded hover:bg-indigo-700 transition-colors"
-                    >
-                      <Eye className="w-3 h-3" />
-                      Analyze
-                    </button>
+                    <div className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-bold ${ap.score >= 9.0 ? 'bg-red-950 text-red-400' : ap.score >= 7.5 ? 'bg-[#451010] text-[#ff7b72]' : 'bg-yellow-950 text-yellow-400'}`}>
+                      {Math.round(ap.score * 100)}
+                    </div>
                   </div>
                 </div>
               )

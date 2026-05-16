@@ -28,9 +28,9 @@ export default function AttackPathOnboarding() {
       
       <div className="grid grid-cols-2 gap-8 items-start">
         
-        {/* Left Column: Asset Topology Tags */}
+        {/* Left Column: Asset Environment Tags */}
         <div className="bg-slate-800/40 border border-slate-700 rounded-lg p-6 flex flex-col shadow-sm">
-          <h2 className="text-lg font-semibold text-white mb-2">Asset Topology Tags</h2>
+          <h2 className="text-lg font-semibold text-white mb-2">Asset Environment Tags</h2>
           <p className="text-[13px] text-slate-400 mb-6 leading-relaxed">Define how your assets are grouped — by site, function, or business unit — so that the attack path engine can model realistic attack traversal from entry point to crown jewel.</p>
           <label className="text-[11px] text-slate-400 mb-2 uppercase font-medium tracking-wider">Tags</label>
           <div className="border border-blue-500/50 rounded-md bg-slate-900/50 p-3 min-h-[120px] focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 transition-all">
